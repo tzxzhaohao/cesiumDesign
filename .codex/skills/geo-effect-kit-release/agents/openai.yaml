@@ -1,0 +1,4 @@
+interface:
+  display_name: "Geo Effect Kit Release"
+  short_description: "Manage geo-effect-kit versions and npm releases"
+  default_prompt: "Use $geo-effect-kit-release to prepare and verify the next geo-effect-kit npm release."
