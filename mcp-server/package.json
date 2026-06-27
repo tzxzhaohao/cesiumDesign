@@ -2,13 +2,37 @@
   "name": "@ztgk/geo-effect-kit-mcp",
   "version": "0.1.0",
   "type": "module",
-  "private": true,
-  "description": "MCP server helpers for geo-effect-kit knowledge manifests.",
+  "description": "MCP server for geo-effect-kit Cesium effect manifests and integration examples.",
+  "license": "MIT",
+  "author": "zhaohao",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tzxzhaohao/cesiumDesign.git",
+    "directory": "mcp-server"
+  },
+  "homepage": "https://github.com/tzxzhaohao/cesiumDesign#readme",
+  "bugs": {
+    "url": "https://github.com/tzxzhaohao/cesiumDesign/issues"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "cesium",
+    "gis",
+    "ai-agent",
+    "geo-effect-kit"
+  ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
     "geo-effect-kit-mcp": "./dist/cli.js"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "package.json"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "pnpm run build && node --test test/*.test.mjs",
@@ -21,5 +45,8 @@
   "devDependencies": {
     "@types/node": "^24.10.1",
     "typescript": "^5.9.3"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

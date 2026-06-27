@@ -3,6 +3,28 @@
   "version": "0.1.0",
   "type": "module",
   "description": "Framework-neutral Cesium effects SDK for geospatial visualizations.",
+  "license": "MIT",
+  "author": "zhaohao",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tzxzhaohao/cesiumDesign.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://tzxzhaohao.github.io/cesiumDesign/",
+  "bugs": {
+    "url": "https://github.com/tzxzhaohao/cesiumDesign/issues"
+  },
+  "keywords": [
+    "cesium",
+    "gis",
+    "webgis",
+    "visualization",
+    "effects",
+    "shader",
+    "typescript",
+    "mcp",
+    "ai-agent"
+  ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -12,7 +34,9 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -22,11 +46,14 @@
   "peerDependencies": {
     "cesium": ">=1.120.0"
   },
+  "dependencies": {
+    "gifuct-js": "^2.1.2"
+  },
   "devDependencies": {
     "cesium": "^1.136.0",
     "typescript": "^5.9.3"
   },
-  "dependencies": {
-    "gifuct-js": "^2.1.2"
+  "publishConfig": {
+    "access": "public"
   }
 }
