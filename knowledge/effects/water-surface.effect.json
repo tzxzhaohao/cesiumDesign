@@ -1,0 +1,111 @@
+{
+  "id": "water-surface",
+  "name": "Water Surface",
+  "packageName": "@ztgk/geo-effect-kit",
+  "importName": "createWaterSurfaceEffect",
+  "summary": "A Three.js-inspired Cesium polygon water shader with procedural normal distortion, Fresnel reflection, and refractive color blending.",
+  "useCases": [
+    "River and lake surfaces with flowing wave motion",
+    "Flood and water-level emergency visualization",
+    "Water conservancy demos that need a reusable animated water polygon"
+  ],
+  "options": {
+    "properties": {
+      "polygon": {
+        "type": "array",
+        "required": true,
+        "description": "WGS84 polygon positions with longitude and latitude."
+      },
+      "type": {
+        "type": "string",
+        "default": "river",
+        "enum": ["river", "lake", "flood"],
+        "description": "Water material style."
+      },
+      "color": {
+        "type": "string",
+        "default": "#3de7ff",
+        "description": "CSS color used by the water shader."
+      },
+      "height": {
+        "type": "number",
+        "default": 0,
+        "minimum": 0,
+        "description": "Water polygon height in meters."
+      },
+      "speed": {
+        "type": "number",
+        "default": 1,
+        "minimum": 0.05,
+        "description": "Animation speed multiplier."
+      },
+      "opacity": {
+        "type": "number",
+        "default": 0.72,
+        "minimum": 0,
+        "maximum": 1,
+        "description": "Overall water opacity."
+      },
+      "waveStrength": {
+        "type": "number",
+        "default": 0.48,
+        "minimum": 0,
+        "maximum": 1,
+        "description": "Wave and flow-line strength."
+      },
+      "reflectionStrength": {
+        "type": "number",
+        "default": 0.36,
+        "minimum": 0,
+        "maximum": 1,
+        "description": "Specular-like shimmer strength."
+      },
+      "distortionScale": {
+        "type": "number",
+        "default": 18,
+        "minimum": 0,
+        "maximum": 64,
+        "description": "Normal-distortion scale inspired by Three.js Water distortionScale."
+      },
+      "reflectivity": {
+        "type": "number",
+        "default": 0.58,
+        "minimum": 0,
+        "maximum": 1,
+        "description": "Strength of Fresnel-like sky reflection."
+      },
+      "refractionStrength": {
+        "type": "number",
+        "default": 0.42,
+        "minimum": 0,
+        "maximum": 1,
+        "description": "Strength of refractive underwater color blending."
+      },
+      "fresnelPower": {
+        "type": "number",
+        "default": 4,
+        "minimum": 1,
+        "maximum": 12,
+        "description": "Power curve used by the Fresnel reflection term."
+      },
+      "flowDirection": {
+        "type": "number",
+        "default": 90,
+        "description": "Flow direction in degrees."
+      }
+    }
+  },
+  "methods": ["update", "show", "hide", "flyTo", "destroy", "isVisible", "isDestroyed", "getOptions"],
+  "examples": {
+    "minimal": {
+      "language": "ts",
+      "code": "import { createWaterSurfaceEffect } from '@ztgk/geo-effect-kit'\n\nconst water = createWaterSurfaceEffect(viewer, {\n  polygon: [\n    { longitude: 116.332, latitude: 39.886 },\n    { longitude: 116.454, latitude: 39.884 },\n    { longitude: 116.491, latitude: 39.925 },\n    { longitude: 116.346, latitude: 39.966 },\n  ],\n  type: 'river',\n  color: '#3de7ff',\n  waveStrength: 0.48,\n  reflectionStrength: 0.36,\n  distortionScale: 18,\n  reflectivity: 0.58,\n  refractionStrength: 0.42,\n  fresnelPower: 4,\n  flowDirection: 90,\n})\n\nwater.flyTo()\nwater.destroy()\n"
+    }
+  },
+  "notes": [
+    "Pass an existing Cesium Viewer; the SDK does not create or own the viewer.",
+    "Coordinates are WGS84 longitude/latitude and are converted with Cartesian3.fromDegrees.",
+    "The water polygon uses GeoWaterSurfaceMaterial with czm_frameNumber animation, procedural normal distortion, Fresnel reflection, and refractive color blending.",
+    "Call destroy() during page cleanup to remove the data source and render loop."
+  ]
+}

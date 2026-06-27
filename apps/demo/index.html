@@ -30,6 +30,18 @@
             <span>pipe-flow</span>
             <small>transparent water pipe</small>
           </button>
+          <button class="effect-tab" type="button" data-effect="scene-weather">
+            <span>scene-weather</span>
+            <small>rain snow fog lightning</small>
+          </button>
+          <button class="effect-tab" type="button" data-effect="post-process">
+            <span>post-process</span>
+            <small>screen color effects</small>
+          </button>
+          <button class="effect-tab" type="button" data-effect="water-surface">
+            <span>water-surface</span>
+            <small>animated water shader</small>
+          </button>
           <button class="effect-tab" type="button" data-effect="light-wall">
             <span>light-wall</span>
             <small>dynamic perimeter wall</small>
@@ -143,6 +155,34 @@
                 <option value="storm">storm</option>
               </select>
             </label>
+            <label id="weatherTypeField" hidden>
+              <span>Weather type</span>
+              <select id="weatherType">
+                <option value="rain">rain</option>
+                <option value="snow">snow</option>
+                <option value="fog">fog</option>
+                <option value="lightning">lightning</option>
+              </select>
+            </label>
+            <label id="postProcessTypeField" hidden>
+              <span>Post effect</span>
+              <select id="postProcessType">
+                <option value="bloom">bloom</option>
+                <option value="night-vision">night-vision</option>
+                <option value="black-white">black-white</option>
+                <option value="brightness">brightness</option>
+                <option value="mosaic">mosaic</option>
+                <option value="depth-of-field">depth-of-field</option>
+              </select>
+            </label>
+            <label id="waterTypeField" hidden>
+              <span>Water type</span>
+              <select id="waterType">
+                <option value="river">river</option>
+                <option value="lake">lake</option>
+                <option value="flood">flood</option>
+              </select>
+            </label>
             <label id="radiusField">
               <span>Radius</span>
               <input id="radius" type="range" min="5000" max="90000" step="1000" value="22000" />
@@ -233,10 +273,45 @@
               <input id="pulseStrength" type="range" min="0" max="1" step="0.01" value="0.72" />
               <output id="pulseStrengthValue">0.72</output>
             </label>
+            <label id="waveStrengthField" hidden>
+              <span>Wave strength</span>
+              <input id="waveStrength" type="range" min="0" max="1" step="0.01" value="0.48" />
+              <output id="waveStrengthValue">0.48</output>
+            </label>
+            <label id="reflectionStrengthField" hidden>
+              <span>Reflection</span>
+              <input id="reflectionStrength" type="range" min="0" max="1" step="0.01" value="0.36" />
+              <output id="reflectionStrengthValue">0.36</output>
+            </label>
+            <label id="distortionScaleField" hidden>
+              <span>Distortion</span>
+              <input id="distortionScale" type="range" min="0" max="64" step="1" value="18" />
+              <output id="distortionScaleValue">18</output>
+            </label>
+            <label id="reflectivityField" hidden>
+              <span>Reflectivity</span>
+              <input id="reflectivity" type="range" min="0" max="1" step="0.01" value="0.58" />
+              <output id="reflectivityValue">0.58</output>
+            </label>
+            <label id="refractionStrengthField" hidden>
+              <span>Refraction</span>
+              <input id="refractionStrength" type="range" min="0" max="1" step="0.01" value="0.42" />
+              <output id="refractionStrengthValue">0.42</output>
+            </label>
+            <label id="fresnelPowerField" hidden>
+              <span>Fresnel power</span>
+              <input id="fresnelPower" type="range" min="1" max="12" step="0.1" value="4" />
+              <output id="fresnelPowerValue">4.0</output>
+            </label>
             <label id="headingField" hidden>
               <span>Heading</span>
               <input id="heading" type="range" min="0" max="360" step="1" value="0" />
               <output id="headingValue">0 deg</output>
+            </label>
+            <label id="windDirectionField" hidden>
+              <span>Wind direction</span>
+              <input id="windDirection" type="range" min="0" max="360" step="1" value="115" />
+              <output id="windDirectionValue">115 deg</output>
             </label>
             <label id="apertureField" hidden>
               <span>Aperture</span>
@@ -280,8 +355,16 @@
             <button class="docs-tab active" type="button" data-doc-tab="usage">Usage</button>
             <button class="docs-tab" type="button" data-doc-tab="notes">Notes</button>
           </div>
-          <pre id="codeExample" class="code-block"></pre>
-          <div id="notesPanel" class="notes" hidden></div>
+          <div id="usageToolbar" class="usage-toolbar">
+            <div class="template-tabs scroll-panel" role="tablist" aria-label="Code template">
+              <button class="template-tab active" type="button" data-code-template="typescript" aria-selected="true">TypeScript</button>
+              <button class="template-tab" type="button" data-code-template="react" aria-selected="false">React</button>
+              <button class="template-tab" type="button" data-code-template="vue" aria-selected="false">Vue</button>
+            </div>
+            <button id="copyCode" class="copy-code-button" type="button">Copy</button>
+          </div>
+          <pre id="codeExample" class="code-block scroll-panel"></pre>
+          <div id="notesPanel" class="notes scroll-panel" hidden></div>
         </aside>
       </main>
     </div>

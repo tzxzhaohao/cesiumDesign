@@ -33,9 +33,12 @@ const docsDir = path.join(repositoryRoot, 'knowledge/docs')
 const effectFiles: Record<string, string> = {
   'radar-scan': path.join(effectsDir, 'radar-scan.effect.json'),
   'ripple-spread': path.join(effectsDir, 'ripple-spread.effect.json'),
+  'scene-weather': path.join(effectsDir, 'scene-weather.effect.json'),
+  'post-process': path.join(effectsDir, 'post-process.effect.json'),
   'polyline-flow': path.join(effectsDir, 'polyline-flow.effect.json'),
   'fly-line': path.join(effectsDir, 'fly-line.effect.json'),
   'pipe-flow': path.join(effectsDir, 'pipe-flow.effect.json'),
+  'water-surface': path.join(effectsDir, 'water-surface.effect.json'),
   'light-wall': path.join(effectsDir, 'light-wall.effect.json'),
   'scan-cone': path.join(effectsDir, 'scan-cone.effect.json'),
   'shield-dome': path.join(effectsDir, 'shield-dome.effect.json'),

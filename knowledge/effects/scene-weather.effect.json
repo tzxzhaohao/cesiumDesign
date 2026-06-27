@@ -1,0 +1,58 @@
+{
+  "id": "scene-weather",
+  "name": "Scene Weather",
+  "packageName": "@ztgk/geo-effect-kit",
+  "importName": "createSceneWeatherEffect",
+  "summary": "A full-scene Cesium post-process weather effect for rain, snow, fog, and lightning.",
+  "useCases": [
+    "Command-center weather atmosphere over an existing Cesium scene",
+    "Emergency response screens that need rain, snow, fog, or lightning context",
+    "Showcase demos that need global atmospheric motion without changing map data"
+  ],
+  "options": {
+    "properties": {
+      "type": {
+        "type": "string",
+        "default": "rain",
+        "enum": ["rain", "snow", "fog", "lightning"],
+        "description": "Weather style rendered by the post-process shader."
+      },
+      "intensity": {
+        "type": "number",
+        "default": 0.55,
+        "minimum": 0,
+        "maximum": 1,
+        "description": "Overall weather strength."
+      },
+      "speed": {
+        "type": "number",
+        "default": 1,
+        "minimum": 0.05,
+        "description": "Animation speed multiplier."
+      },
+      "windDirection": {
+        "type": "number",
+        "default": 115,
+        "description": "Wind direction in degrees."
+      },
+      "color": {
+        "type": "string",
+        "default": "#d8f3ff",
+        "description": "Weather tint color."
+      }
+    }
+  },
+  "methods": ["update", "show", "hide", "flyTo", "destroy", "isVisible", "isDestroyed", "getOptions"],
+  "examples": {
+    "minimal": {
+      "language": "ts",
+      "code": "import { createSceneWeatherEffect } from '@ztgk/geo-effect-kit'\n\nconst weather = createSceneWeatherEffect(viewer, {\n  type: 'rain',\n  intensity: 0.55,\n  speed: 1,\n  windDirection: 115,\n  color: '#d8f3ff',\n})\n\nweather.update({ type: 'fog', intensity: 0.42 })\nweather.destroy()\n"
+    }
+  },
+  "notes": [
+    "Pass an existing Cesium Viewer; the SDK does not create or own the viewer.",
+    "The effect is rendered by one Cesium PostProcessStage.",
+    "Call destroy() during page cleanup to remove the post-process stage and render loop.",
+    "Use show() and hide() to toggle the stage without losing current options."
+  ]
+}

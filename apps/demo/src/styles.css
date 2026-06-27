@@ -248,6 +248,7 @@ select {
   right: 18px;
   bottom: 18px;
   display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
   width: min(500px, calc(100vw - 322px));
   max-height: min(46vh, 410px);
   overflow: hidden;
@@ -272,6 +273,75 @@ select {
   color: #ffffff;
   background: rgb(255 255 255 / 8%);
   border-color: rgb(255 255 255 / 12%);
+}
+
+.usage-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px 0;
+}
+
+.template-tabs {
+  display: flex;
+  min-width: 0;
+  gap: 4px;
+  overflow-x: auto;
+}
+
+.scroll-panel {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(94 232 255 / 42%) transparent;
+}
+
+.scroll-panel::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scroll-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scroll-panel::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgb(94 232 255 / 58%), rgb(232 255 114 / 46%));
+  border: 2px solid rgb(5 8 12 / 78%);
+  border-radius: 999px;
+}
+
+.scroll-panel::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgb(94 232 255 / 78%), rgb(232 255 114 / 64%));
+}
+
+.scroll-panel::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.template-tab,
+.copy-code-button {
+  min-height: 30px;
+  padding: 6px 10px;
+  color: #b8ccd1;
+  white-space: nowrap;
+  background: rgb(255 255 255 / 5%);
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.template-tab.active {
+  color: #071018;
+  background: #e8ff72;
+  border-color: #e8ff72;
+}
+
+.copy-code-button {
+  color: #f1fbfd;
+}
+
+.copy-code-button:hover {
+  border-color: rgb(94 232 255 / 44%);
 }
 
 .code-block {

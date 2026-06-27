@@ -1,0 +1,60 @@
+{
+  "id": "post-process",
+  "name": "Post Process",
+  "packageName": "@ztgk/geo-effect-kit",
+  "importName": "createPostProcessEffect",
+  "summary": "A Mars3D-style screen-space Cesium post-process effect for bloom, night vision, black-white, brightness, mosaic, and depth-of-field looks.",
+  "useCases": [
+    "Scene-level bloom or brightness adjustments",
+    "Night-vision and black-white command-center modes",
+    "Showcase demos that need quick screen-space visual personalities"
+  ],
+  "options": {
+    "properties": {
+      "type": {
+        "type": "string",
+        "default": "bloom",
+        "enum": ["bloom", "night-vision", "black-white", "brightness", "mosaic", "depth-of-field"],
+        "description": "Screen-space effect mode."
+      },
+      "strength": {
+        "type": "number",
+        "default": 0.65,
+        "minimum": 0,
+        "maximum": 1,
+        "description": "Overall effect strength."
+      },
+      "brightness": {
+        "type": "number",
+        "default": 1,
+        "minimum": 0,
+        "description": "Brightness multiplier used by brightness mode."
+      },
+      "contrast": {
+        "type": "number",
+        "default": 1,
+        "minimum": 0,
+        "description": "Contrast multiplier used by brightness mode."
+      },
+      "saturation": {
+        "type": "number",
+        "default": 1,
+        "minimum": 0,
+        "description": "Saturation multiplier used by brightness mode."
+      }
+    }
+  },
+  "methods": ["update", "show", "hide", "flyTo", "destroy", "isVisible", "isDestroyed", "getOptions"],
+  "examples": {
+    "minimal": {
+      "language": "ts",
+      "code": "import { createPostProcessEffect } from '@ztgk/geo-effect-kit'\n\nconst postProcess = createPostProcessEffect(viewer, {\n  type: 'night-vision',\n  strength: 0.82,\n  brightness: 1.4,\n  contrast: 1.2,\n  saturation: 0.6,\n})\n\npostProcess.update({ type: 'bloom', strength: 0.65 })\npostProcess.destroy()\n"
+    }
+  },
+  "notes": [
+    "Pass an existing Cesium Viewer; the SDK does not create or own the viewer.",
+    "The effect uses one reusable Cesium PostProcessStage and updates uniforms in place.",
+    "Use show() and hide() for temporary scene-mode switches.",
+    "Call destroy() during page cleanup to remove the post-process stage."
+  ]
+}

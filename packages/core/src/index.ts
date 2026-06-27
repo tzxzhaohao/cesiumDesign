@@ -26,6 +26,7 @@ import {
   PolylineGlowMaterialProperty,
   PolygonGeometry,
   PolygonHierarchy,
+  PostProcessStage,
   Primitive,
   Rectangle,
   Transforms,
@@ -49,9 +50,15 @@ export const GEO_SHIELD_DOME_MATERIAL_TYPE = 'GeoShieldDomeMaterial'
 
 export const GEO_TEMPERATURE_FIELD_MATERIAL_TYPE = 'GeoTemperatureFieldMaterial'
 
+export const GEO_WATER_SURFACE_MATERIAL_TYPE = 'GeoWaterSurfaceMaterial'
+
 export const RADAR_SCAN_TYPE_VALUES = ['classic', 'sector', 'pulse', 'grid'] as const
 
 export const RIPPLE_SPREAD_TYPE_VALUES = ['water', 'energy', 'soft'] as const
+
+export const SCENE_WEATHER_TYPE_VALUES = ['rain', 'snow', 'fog', 'lightning'] as const
+
+export const POST_PROCESS_TYPE_VALUES = ['bloom', 'night-vision', 'black-white', 'brightness', 'mosaic', 'depth-of-field'] as const
 
 export const POLYLINE_FLOW_TYPE_VALUES = ['dispatch', 'migration', 'attack', 'comet', 'electric'] as const
 
@@ -63,9 +70,15 @@ export const SCAN_CONE_TYPE_VALUES = ['searchlight', 'radar', 'camera', 'drone',
 
 export const SHIELD_DOME_TYPE_VALUES = ['hex', 'plasma', 'matrix', 'aegis', 'storm'] as const
 
+export const WATER_SURFACE_TYPE_VALUES = ['river', 'lake', 'flood'] as const
+
 export type RadarScanType = (typeof RADAR_SCAN_TYPE_VALUES)[number]
 
 export type RippleSpreadType = (typeof RIPPLE_SPREAD_TYPE_VALUES)[number]
+
+export type SceneWeatherType = (typeof SCENE_WEATHER_TYPE_VALUES)[number]
+
+export type PostProcessType = (typeof POST_PROCESS_TYPE_VALUES)[number]
 
 export type PolylineFlowType = (typeof POLYLINE_FLOW_TYPE_VALUES)[number]
 
@@ -76,6 +89,8 @@ export type LightWallType = (typeof LIGHT_WALL_TYPE_VALUES)[number]
 export type ScanConeType = (typeof SCAN_CONE_TYPE_VALUES)[number]
 
 export type ShieldDomeType = (typeof SHIELD_DOME_TYPE_VALUES)[number]
+
+export type WaterSurfaceType = (typeof WATER_SURFACE_TYPE_VALUES)[number]
 
 export interface RadarScanCenter {
   longitude: number
@@ -166,6 +181,64 @@ export interface RippleSpreadEffectInstance {
   isVisible(): boolean
   isDestroyed(): boolean
   getOptions(): NormalizedRippleSpreadOptions
+}
+
+export interface SceneWeatherOptions {
+  type?: SceneWeatherType | string
+  intensity?: number
+  speed?: number
+  windDirection?: number
+  color?: string
+  visible?: boolean
+}
+
+export interface NormalizedSceneWeatherOptions {
+  type: SceneWeatherType
+  intensity: number
+  speed: number
+  windDirection: number
+  color: string
+  visible: boolean
+}
+
+export interface SceneWeatherEffectInstance {
+  update(options: Partial<SceneWeatherOptions>): void
+  show(): void
+  hide(): void
+  flyTo(): void
+  destroy(): void
+  isVisible(): boolean
+  isDestroyed(): boolean
+  getOptions(): NormalizedSceneWeatherOptions
+}
+
+export interface PostProcessOptions {
+  type?: PostProcessType | string
+  strength?: number
+  brightness?: number
+  contrast?: number
+  saturation?: number
+  visible?: boolean
+}
+
+export interface NormalizedPostProcessOptions {
+  type: PostProcessType
+  strength: number
+  brightness: number
+  contrast: number
+  saturation: number
+  visible: boolean
+}
+
+export interface PostProcessEffectInstance {
+  update(options: Partial<PostProcessOptions>): void
+  show(): void
+  hide(): void
+  flyTo(): void
+  destroy(): void
+  isVisible(): boolean
+  isDestroyed(): boolean
+  getOptions(): NormalizedPostProcessOptions
 }
 
 export interface PolylineFlowOptions {
@@ -566,12 +639,73 @@ export interface FireBillboardEffectInstance {
   getOptions(): NormalizedFireBillboardOptions
 }
 
+export interface WaterSurfaceOptions {
+  polygon: GeoEffectPosition[]
+  type?: WaterSurfaceType | string
+  color?: string
+  height?: number
+  speed?: number
+  opacity?: number
+  waveStrength?: number
+  reflectionStrength?: number
+  distortionScale?: number
+  reflectivity?: number
+  refractionStrength?: number
+  fresnelPower?: number
+  flowDirection?: number
+  outline?: boolean
+  visible?: boolean
+}
+
+export interface NormalizedWaterSurfaceOptions {
+  polygon: GeoEffectPosition[]
+  type: WaterSurfaceType
+  color: string
+  height: number
+  speed: number
+  opacity: number
+  waveStrength: number
+  reflectionStrength: number
+  distortionScale: number
+  reflectivity: number
+  refractionStrength: number
+  fresnelPower: number
+  flowDirection: number
+  outline: boolean
+  visible: boolean
+}
+
+export interface WaterSurfaceFlyToOptions {
+  duration?: number
+  pitch?: number
+  rangeMultiplier?: number
+}
+
+export interface WaterSurfaceEffectInstance {
+  update(options: Partial<WaterSurfaceOptions>): void
+  show(): void
+  hide(): void
+  flyTo(options?: WaterSurfaceFlyToOptions): void
+  destroy(): void
+  isVisible(): boolean
+  isDestroyed(): boolean
+  getOptions(): NormalizedWaterSurfaceOptions
+}
+
 export function createRadarScanEffect(viewer: Viewer, options: RadarScanOptions): RadarScanEffect {
   return new RadarScanEffect(viewer, options)
 }
 
 export function createRippleSpreadEffect(viewer: Viewer, options: RippleSpreadOptions): RippleSpreadEffect {
   return new RippleSpreadEffect(viewer, options)
+}
+
+export function createSceneWeatherEffect(viewer: Viewer, options: SceneWeatherOptions = {}): SceneWeatherEffect {
+  return new SceneWeatherEffect(viewer, options)
+}
+
+export function createPostProcessEffect(viewer: Viewer, options: PostProcessOptions = {}): PostProcessEffect {
+  return new PostProcessEffect(viewer, options)
 }
 
 export function createPolylineFlowEffect(viewer: Viewer, options: PolylineFlowOptions): PolylineFlowEffect {
@@ -606,6 +740,10 @@ export function createFireBillboardEffect(viewer: Viewer, options: FireBillboard
   return new FireBillboardEffect(viewer, options)
 }
 
+export function createWaterSurfaceEffect(viewer: Viewer, options: WaterSurfaceOptions): WaterSurfaceEffect {
+  return new WaterSurfaceEffect(viewer, options)
+}
+
 export function normalizeRadarScanOptions(options: RadarScanOptions): NormalizedRadarScanOptions {
   return {
     center: {
@@ -636,6 +774,29 @@ export function normalizeRippleSpreadOptions(options: RippleSpreadOptions): Norm
     durationMs: Math.max(1, finiteOr(options.durationMs ?? 3200, 3200)),
     opacity: clamp01(finiteOr(options.opacity ?? 0.82, 0.82)),
     showCenter: options.showCenter ?? false,
+    visible: options.visible ?? true,
+  }
+}
+
+export function normalizeSceneWeatherOptions(options: SceneWeatherOptions = {}): NormalizedSceneWeatherOptions {
+  const color = options.color && options.color.trim().length > 0 ? options.color : '#d8f3ff'
+  return {
+    type: normalizeSceneWeatherType(options.type),
+    intensity: clamp01(finiteOr(options.intensity ?? 0.55, 0.55)),
+    speed: clamp(finiteOr(options.speed ?? 1, 1), 0.05, 8),
+    windDirection: finiteOr(options.windDirection ?? 115, 115),
+    color,
+    visible: options.visible ?? true,
+  }
+}
+
+export function normalizePostProcessOptions(options: PostProcessOptions = {}): NormalizedPostProcessOptions {
+  return {
+    type: normalizePostProcessType(options.type),
+    strength: clamp01(finiteOr(options.strength ?? 0.65, 0.65)),
+    brightness: clamp(finiteOr(options.brightness ?? 1, 1), 0, 3),
+    contrast: clamp(finiteOr(options.contrast ?? 1, 1), 0, 3),
+    saturation: clamp(finiteOr(options.saturation ?? 1, 1), 0, 3),
     visible: options.visible ?? true,
   }
 }
@@ -768,6 +929,27 @@ export function normalizeFireBillboardOptions(options: FireBillboardOptions): No
   }
 }
 
+export function normalizeWaterSurfaceOptions(options: WaterSurfaceOptions): NormalizedWaterSurfaceOptions {
+  const color = options.color && options.color.trim().length > 0 ? options.color : '#3de7ff'
+  return {
+    polygon: normalizePositions(options.polygon, true),
+    type: normalizeWaterSurfaceType(options.type),
+    color,
+    height: Math.max(0, finiteOr(options.height ?? 0, 0)),
+    speed: clamp(finiteOr(options.speed ?? 1, 1), 0.05, 8),
+    opacity: clamp01(finiteOr(options.opacity ?? 0.72, 0.72)),
+    waveStrength: clamp01(finiteOr(options.waveStrength ?? 0.48, 0.48)),
+    reflectionStrength: clamp01(finiteOr(options.reflectionStrength ?? 0.36, 0.36)),
+    distortionScale: clamp(finiteOr(options.distortionScale ?? 18, 18), 0, 64),
+    reflectivity: clamp01(finiteOr(options.reflectivity ?? 0.58, 0.58)),
+    refractionStrength: clamp01(finiteOr(options.refractionStrength ?? 0.42, 0.42)),
+    fresnelPower: clamp(finiteOr(options.fresnelPower ?? 4, 4), 1, 12),
+    flowDirection: finiteOr(options.flowDirection ?? 90, 90),
+    outline: options.outline ?? true,
+    visible: options.visible ?? true,
+  }
+}
+
 export function shouldRebuildRadarScan(
   previous: NormalizedRadarScanOptions,
   next: NormalizedRadarScanOptions,
@@ -860,6 +1042,18 @@ export function shouldRebuildFireBillboard(
     previous.clampToGround !== next.clampToGround ||
     previous.points.length !== next.points.length ||
     !fireBillboardPointsEqual(previous.points, next.points)
+  )
+}
+
+export function shouldRebuildWaterSurface(
+  previous: NormalizedWaterSurfaceOptions,
+  next: NormalizedWaterSurfaceOptions,
+): boolean {
+  return (
+    previous.height !== next.height ||
+    previous.outline !== next.outline ||
+    previous.polygon.length !== next.polygon.length ||
+    !positionsEqual(previous.polygon, next.polygon)
   )
 }
 
@@ -978,6 +1172,122 @@ export function buildRippleSpreadMaterialSource(): string {
       material.emission = styleColor * (rippleStrength * (0.56 + energyEnabled * 0.42) + centerGlow * 0.48);
       material.alpha = opacity * (inside * (0.035 + softEnabled * 0.04) + shimmer + rippleStrength * (0.35 + energyEnabled * 0.24) + centerGlow * 0.18 + outerGlow);
       return material;
+    }
+  `
+}
+
+export function buildSceneWeatherPostProcessSource(): string {
+  return `
+    uniform sampler2D colorTexture;
+    uniform float weatherType;
+    uniform float intensity;
+    uniform float speed;
+    uniform float windDirection;
+    uniform vec4 color;
+    in vec2 v_textureCoordinates;
+
+    float geoWeatherHash(vec2 p)
+    {
+      return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+    }
+
+    float geoWeatherNoise(vec2 p)
+    {
+      vec2 i = floor(p);
+      vec2 f = fract(p);
+      float a = geoWeatherHash(i);
+      float b = geoWeatherHash(i + vec2(1.0, 0.0));
+      float c = geoWeatherHash(i + vec2(0.0, 1.0));
+      float d = geoWeatherHash(i + vec2(1.0, 1.0));
+      vec2 u = f * f * (3.0 - 2.0 * f);
+      return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+    }
+
+    void main()
+    {
+      vec4 sceneColor = texture(colorTexture, v_textureCoordinates);
+      vec2 st = v_textureCoordinates;
+      float time = czm_frameNumber * 0.016667 * speed;
+      float angle = radians(windDirection);
+      vec2 wind = vec2(cos(angle), sin(angle));
+      float rainEnabled = 1.0 - step(1.5, weatherType);
+      float snowEnabled = step(1.5, weatherType) * (1.0 - step(2.5, weatherType));
+      float fogEnabled = step(2.5, weatherType) * (1.0 - step(3.5, weatherType));
+      float lightningEnabled = step(3.5, weatherType);
+
+      vec2 rainUv = st * vec2(36.0, 1.8) + wind * time * 1.65;
+      float rainLine = smoothstep(0.965, 1.0, fract(rainUv.x + rainUv.y * 0.24));
+      rainLine *= smoothstep(0.14, 1.0, geoWeatherHash(vec2(floor(rainUv.x), floor(rainUv.y * 8.0))));
+
+      vec2 snowUv = st * 18.0 + vec2(wind.x * 0.28, -1.0) * time * 0.32;
+      float snowCell = geoWeatherNoise(snowUv);
+      float snowFlake = smoothstep(0.82, 1.0, snowCell) * (0.55 + 0.45 * geoWeatherNoise(snowUv * 0.47));
+
+      float fogNoise = geoWeatherNoise(st * 4.0 + vec2(time * 0.04, time * 0.02));
+      float fogGradient = smoothstep(0.02, 0.98, st.y);
+      float fog = (0.45 + fogNoise * 0.55) * fogGradient;
+
+      float flash = pow(max(sin(time * 2.7), 0.0), 18.0) * geoWeatherNoise(vec2(floor(time * 0.7), 7.3));
+      float bolt = smoothstep(0.018, 0.0, abs(st.x - (0.28 + geoWeatherNoise(vec2(floor(time), 2.0)) * 0.46 + sin(st.y * 34.0) * 0.025)));
+      bolt *= smoothstep(0.95, 0.35, st.y) * flash;
+
+      vec3 weatherColor = color.rgb;
+      vec3 rainColor = mix(sceneColor.rgb, weatherColor, rainLine * intensity * 0.48);
+      vec3 snowColor = mix(sceneColor.rgb, weatherColor, snowFlake * intensity * 0.58);
+      vec3 fogColor = mix(sceneColor.rgb, weatherColor, fog * intensity * 0.72);
+      vec3 lightningColor = sceneColor.rgb + weatherColor * (bolt * 1.8 + flash * 0.18) * intensity;
+      vec3 mixed = sceneColor.rgb;
+      mixed = mix(mixed, rainColor, rainEnabled);
+      mixed = mix(mixed, snowColor, snowEnabled);
+      mixed = mix(mixed, fogColor, fogEnabled);
+      mixed = mix(mixed, lightningColor, lightningEnabled);
+      out_FragColor = vec4(mixed, sceneColor.a);
+    }
+  `
+}
+
+export function buildPostProcessSource(): string {
+  return `
+    uniform sampler2D colorTexture;
+    uniform float effectType;
+    uniform float strength;
+    uniform float brightness;
+    uniform float contrast;
+    uniform float saturation;
+    in vec2 v_textureCoordinates;
+
+    void main()
+    {
+      vec4 sceneColor = texture(colorTexture, v_textureCoordinates);
+      vec2 st = v_textureCoordinates;
+      vec3 colorValue = sceneColor.rgb;
+      float bloomEnabled = 1.0 - step(1.5, effectType);
+      float nightEnabled = step(1.5, effectType) * (1.0 - step(2.5, effectType));
+      float blackWhiteEnabled = step(2.5, effectType) * (1.0 - step(3.5, effectType));
+      float brightnessEnabled = step(3.5, effectType) * (1.0 - step(4.5, effectType));
+      float mosaicEnabled = step(4.5, effectType) * (1.0 - step(5.5, effectType));
+      float depthEnabled = step(5.5, effectType);
+
+      float luminance = dot(colorValue, vec3(0.299, 0.587, 0.114));
+      vec3 bloomColor = colorValue + max(colorValue - vec3(0.62), vec3(0.0)) * strength * 1.35;
+      vec3 nightColor = vec3(luminance * 0.18, luminance * 1.22, luminance * 0.34) * (0.72 + strength);
+      vec3 grayColor = vec3(luminance);
+      vec3 brightColor = (colorValue - 0.5) * contrast + 0.5;
+      brightColor = mix(vec3(dot(brightColor, vec3(0.299, 0.587, 0.114))), brightColor, saturation) * brightness;
+
+      vec2 mosaicUv = (floor(st * mix(96.0, 24.0, strength)) + 0.5) / mix(96.0, 24.0, strength);
+      vec3 mosaicColor = texture(colorTexture, mosaicUv).rgb;
+      float distanceFromFocus = distance(st, vec2(0.5));
+      vec3 depthColor = mix(colorValue, texture(colorTexture, mix(st, vec2(0.5), 0.018 + strength * 0.04)).rgb, smoothstep(0.2, 0.72, distanceFromFocus));
+
+      vec3 result = colorValue;
+      result = mix(result, bloomColor, bloomEnabled);
+      result = mix(result, nightColor, nightEnabled);
+      result = mix(result, grayColor, blackWhiteEnabled * strength);
+      result = mix(result, brightColor, brightnessEnabled);
+      result = mix(result, mosaicColor, mosaicEnabled);
+      result = mix(result, depthColor, depthEnabled);
+      out_FragColor = vec4(result, sceneColor.a);
     }
   `
 }
@@ -1112,6 +1422,92 @@ export function buildTemperatureFieldMaterialSource(): string {
       material.diffuse = veil * (0.82 + contour * 0.18);
       material.emission = ramp * (0.12 + value * 0.16) + vec3(1.0, 0.88, 0.45) * contour * 0.12;
       material.alpha = opacity * edgeFade * (0.52 + value * 0.24 + contour * 0.14);
+      return material;
+    }
+  `
+}
+
+export function buildWaterSurfaceMaterialSource(): string {
+  return `
+    // ${GEO_WATER_SURFACE_MATERIAL_TYPE}
+    float waterHash(vec2 p)
+    {
+      return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+    }
+
+    float waterNoise(vec2 p)
+    {
+      vec2 i = floor(p);
+      vec2 f = fract(p);
+      vec2 u = f * f * (3.0 - 2.0 * f);
+      float a = waterHash(i);
+      float b = waterHash(i + vec2(1.0, 0.0));
+      float c = waterHash(i + vec2(0.0, 1.0));
+      float d = waterHash(i + vec2(1.0, 1.0));
+      return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+    }
+
+    float waterHeight(vec2 uv, vec2 flow, float time)
+    {
+      vec2 crossFlow = vec2(-flow.y, flow.x);
+      float layerA = sin(dot(uv + flow * time * 0.055, flow) * 62.0 + time * 1.7);
+      float layerB = sin(dot(uv - crossFlow * time * 0.04, crossFlow) * 84.0 - time * 1.15);
+      float layerC = waterNoise(uv * 18.0 + flow * time * 1.4) * 2.0 - 1.0;
+      return layerA * 0.42 + layerB * 0.34 + layerC * 0.24;
+    }
+
+    vec3 getProceduralWaterNormal(vec2 uv, vec2 flow, float time, float strength)
+    {
+      float sampleStep = 0.006;
+      float center = waterHeight(uv, flow, time);
+      float dx = waterHeight(uv + vec2(sampleStep, 0.0), flow, time) - center;
+      float dy = waterHeight(uv + vec2(0.0, sampleStep), flow, time) - center;
+      return normalize(vec3(-dx * strength, -dy * strength, 1.0));
+    }
+
+    czm_material czm_getMaterial(czm_materialInput materialInput)
+    {
+      czm_material material = czm_getDefaultMaterial(materialInput);
+      vec2 st = materialInput.st;
+      float time = czm_frameNumber * 0.016667 * speed;
+      float direction = radians(flowDirection);
+      vec2 flow = vec2(cos(direction), sin(direction));
+      vec2 crossFlow = vec2(-flow.y, flow.x);
+      vec2 distortion = (flow * sin(dot(st, crossFlow) * 18.0 + time * 0.8) + crossFlow * sin(dot(st, flow) * 22.0 - time * 0.65)) * distortionScale * 0.00085;
+      vec2 moving = st + flow * time * 0.06 + distortion;
+      vec3 surfaceNormal = getProceduralWaterNormal(moving * (1.0 + waveStrength * 1.8), flow, time, mix(8.0, 28.0, waveStrength));
+      float waveA = waterHeight(moving * 1.8, flow, time) * 0.5 + 0.5;
+      float waveB = waterHeight(moving.yx * 2.2 + vec2(0.17, 0.31), crossFlow, time * 0.82) * 0.5 + 0.5;
+      float smallWave = clamp(dot(surfaceNormal.xy, vec2(0.72, -0.48)) * 0.5 + 0.5, 0.0, 1.0);
+      float riverEnabled = 1.0 - step(1.5, waterType);
+      float lakeEnabled = step(1.5, waterType) * (1.0 - step(2.5, waterType));
+      float floodEnabled = step(2.5, waterType);
+      float riverFlow = smoothstep(0.38, 1.0, waterNoise(moving * 9.0 + flow * time * 0.55)) * waveA;
+      float lakeShimmer = pow(waveA * waveB, 2.0);
+      float floodPulse = smoothstep(0.08, 0.0, abs(fract(distance(st, vec2(0.5)) * 4.0 - time * 0.45) - 0.5));
+      float riverWave = mix(waveA, max(riverFlow, waveB * 0.72), 0.45);
+      float wave = mix(waveA, max(riverWave, lakeShimmer), waveStrength);
+      wave = max(wave, floodPulse * floodEnabled);
+      vec3 viewDirection = normalize(materialInput.positionToEyeEC);
+      float viewFacing = clamp(1.0 - abs(dot(normalize(materialInput.normalEC), -viewDirection)), 0.0, 1.0);
+      float fresnel = pow(viewFacing, fresnelPower) * reflectivity;
+      float reflection = (0.18 + smallWave * 0.82) * reflectionStrength;
+      vec3 riverTint = mix(color.rgb, vec3(0.18, 0.72, 1.0), 0.24);
+      vec3 lakeTint = mix(color.rgb, vec3(0.36, 0.92, 0.86), 0.22);
+      vec3 floodTint = mix(color.rgb, vec3(0.42, 0.68, 1.0), 0.36);
+      vec3 waterColor = riverTint * riverEnabled + lakeTint * lakeEnabled + floodTint * floodEnabled;
+      vec3 deepColor = mix(waterColor, vec3(0.015, 0.11, 0.18), 0.46);
+      vec3 refractionColor = mix(deepColor, waterColor, 0.42 + wave * 0.34);
+      refractionColor += vec3(0.02, 0.12, 0.16) * refractionStrength * (0.5 + waveB * 0.5);
+      vec3 skyReflection = mix(vec3(0.58, 0.86, 1.0), vec3(1.0), pow(smallWave, 5.0));
+      vec3 reflectionColor = skyReflection * (0.32 + reflection * 0.78);
+      vec3 finalColor = mix(refractionColor, reflectionColor, clamp(fresnel + reflection * 0.24, 0.0, 1.0));
+      float foam = smoothstep(0.68, 1.0, wave) * smoothstep(0.38, 1.0, waveStrength);
+      finalColor = mix(finalColor, vec3(0.82, 0.98, 1.0), foam * 0.18);
+      material.normal = surfaceNormal;
+      material.diffuse = finalColor * (0.56 + wave * 0.18);
+      material.emission = reflectionColor * (0.14 + fresnel * 0.42) + waterColor * ((riverFlow * 0.08 + waveB * 0.06) * riverEnabled + floodPulse * floodEnabled * 0.22);
+      material.alpha = opacity * (0.62 + wave * 0.12 + fresnel * 0.2 + refractionStrength * 0.06);
       return material;
     }
   `
@@ -1668,6 +2064,210 @@ export class RippleSpreadEffect implements RippleSpreadEffectInstance {
   }
 }
 
+export class SceneWeatherEffect implements SceneWeatherEffectInstance {
+  private readonly viewer: Viewer
+  private options: NormalizedSceneWeatherOptions
+  private stage: PostProcessStage | null = null
+  private renderFrame = 0
+  private destroyed = false
+
+  constructor(viewer: Viewer, options: SceneWeatherOptions = {}) {
+    this.viewer = viewer
+    this.options = normalizeSceneWeatherOptions(options)
+    this.renderStage()
+    this.startRenderLoop()
+    this.viewer.scene.requestRender()
+  }
+
+  update(options: Partial<SceneWeatherOptions>): void {
+    if (this.destroyed) return
+
+    this.options = normalizeSceneWeatherOptions({
+      ...this.options,
+      ...options,
+      visible: options.visible ?? this.options.visible,
+    })
+    this.applyStageOptions()
+    if (this.options.visible) this.startRenderLoop()
+    else this.stopRenderLoop()
+    this.viewer.scene.requestRender()
+  }
+
+  show(): void {
+    if (this.destroyed) return
+    this.options = { ...this.options, visible: true }
+    this.applyStageOptions()
+    this.startRenderLoop()
+    this.viewer.scene.requestRender()
+  }
+
+  hide(): void {
+    if (this.destroyed) return
+    this.options = { ...this.options, visible: false }
+    this.applyStageOptions()
+    this.stopRenderLoop()
+    this.viewer.scene.requestRender()
+  }
+
+  flyTo(): void {
+    if (this.destroyed) return
+    this.viewer.scene.requestRender()
+  }
+
+  destroy(): void {
+    if (this.destroyed) return
+
+    this.destroyed = true
+    this.stopRenderLoop()
+    if (this.stage) {
+      this.viewer.scene.postProcessStages.remove(this.stage)
+      this.stage = null
+    }
+    this.viewer.scene.requestRender()
+  }
+
+  isVisible(): boolean {
+    return this.options.visible
+  }
+
+  isDestroyed(): boolean {
+    return this.destroyed
+  }
+
+  getOptions(): NormalizedSceneWeatherOptions {
+    return { ...this.options }
+  }
+
+  private renderStage(): void {
+    this.stage = this.viewer.scene.postProcessStages.add(
+      new PostProcessStage({
+        name: 'geo-effect-kit-scene-weather',
+        fragmentShader: buildSceneWeatherPostProcessSource(),
+        uniforms: createSceneWeatherUniforms(this.options),
+      }),
+    ) as PostProcessStage
+    this.applyStageOptions()
+  }
+
+  private applyStageOptions(): void {
+    if (!this.stage) return
+
+    this.stage.enabled = this.options.visible
+    Object.assign(this.stage.uniforms, createSceneWeatherUniforms(this.options))
+  }
+
+  private startRenderLoop(): void {
+    if (this.renderFrame || !this.options.visible || typeof window === 'undefined') return
+
+    const tick = () => {
+      if (this.destroyed || !this.options.visible) {
+        this.renderFrame = 0
+        return
+      }
+      this.viewer.scene.requestRender()
+      this.renderFrame = window.requestAnimationFrame(tick)
+    }
+
+    this.renderFrame = window.requestAnimationFrame(tick)
+  }
+
+  private stopRenderLoop(): void {
+    if (!this.renderFrame || typeof window === 'undefined') {
+      this.renderFrame = 0
+      return
+    }
+
+    window.cancelAnimationFrame(this.renderFrame)
+    this.renderFrame = 0
+  }
+}
+
+export class PostProcessEffect implements PostProcessEffectInstance {
+  private readonly viewer: Viewer
+  private options: NormalizedPostProcessOptions
+  private stage: PostProcessStage | null = null
+  private destroyed = false
+
+  constructor(viewer: Viewer, options: PostProcessOptions = {}) {
+    this.viewer = viewer
+    this.options = normalizePostProcessOptions(options)
+    this.renderStage()
+    this.viewer.scene.requestRender()
+  }
+
+  update(options: Partial<PostProcessOptions>): void {
+    if (this.destroyed) return
+
+    this.options = normalizePostProcessOptions({
+      ...this.options,
+      ...options,
+      visible: options.visible ?? this.options.visible,
+    })
+    this.applyStageOptions()
+    this.viewer.scene.requestRender()
+  }
+
+  show(): void {
+    if (this.destroyed) return
+    this.options = { ...this.options, visible: true }
+    this.applyStageOptions()
+    this.viewer.scene.requestRender()
+  }
+
+  hide(): void {
+    if (this.destroyed) return
+    this.options = { ...this.options, visible: false }
+    this.applyStageOptions()
+    this.viewer.scene.requestRender()
+  }
+
+  flyTo(): void {
+    if (this.destroyed) return
+    this.viewer.scene.requestRender()
+  }
+
+  destroy(): void {
+    if (this.destroyed) return
+
+    this.destroyed = true
+    if (this.stage) {
+      this.viewer.scene.postProcessStages.remove(this.stage)
+      this.stage = null
+    }
+    this.viewer.scene.requestRender()
+  }
+
+  isVisible(): boolean {
+    return this.options.visible
+  }
+
+  isDestroyed(): boolean {
+    return this.destroyed
+  }
+
+  getOptions(): NormalizedPostProcessOptions {
+    return { ...this.options }
+  }
+
+  private renderStage(): void {
+    this.stage = this.viewer.scene.postProcessStages.add(
+      new PostProcessStage({
+        name: 'geo-effect-kit-post-process',
+        fragmentShader: buildPostProcessSource(),
+        uniforms: createPostProcessUniforms(this.options),
+      }),
+    ) as PostProcessStage
+    this.applyStageOptions()
+  }
+
+  private applyStageOptions(): void {
+    if (!this.stage) return
+
+    this.stage.enabled = this.options.visible
+    Object.assign(this.stage.uniforms, createPostProcessUniforms(this.options))
+  }
+}
+
 export class TemperatureFieldEffect implements TemperatureFieldEffectInstance {
   private readonly viewer: Viewer
   private readonly dataSource: CustomDataSource
@@ -2079,6 +2679,171 @@ export class FireBillboardEffect implements FireBillboardEffectInstance {
     if (!this.frameTimer) return
     clearInterval(this.frameTimer)
     this.frameTimer = null
+  }
+}
+
+export class WaterSurfaceEffect implements WaterSurfaceEffectInstance {
+  private readonly viewer: Viewer
+  private readonly dataSource: CustomDataSource
+  private options: NormalizedWaterSurfaceOptions
+  private waterEntity: Entity | null = null
+  private outlineEntity: Entity | null = null
+  private material: DynamicCesiumMaterialProperty | null = null
+  private renderFrame = 0
+  private destroyed = false
+
+  constructor(viewer: Viewer, options: WaterSurfaceOptions) {
+    this.viewer = viewer
+    this.options = normalizeWaterSurfaceOptions(options)
+    this.dataSource = new CustomDataSource('geo-effect-kit-water-surface')
+    this.dataSource.show = this.options.visible
+    this.viewer.dataSources.add(this.dataSource)
+    this.renderEntities()
+    this.startRenderLoop()
+    this.viewer.scene.requestRender()
+  }
+
+  update(options: Partial<WaterSurfaceOptions>): void {
+    if (this.destroyed) return
+
+    const next = normalizeWaterSurfaceOptions({
+      ...this.options,
+      ...options,
+      polygon: options.polygon ?? this.options.polygon,
+      visible: options.visible ?? this.options.visible,
+    })
+    const rebuildEntities = shouldRebuildWaterSurface(this.options, next)
+    this.options = next
+
+    if (rebuildEntities) {
+      this.renderEntities()
+    } else {
+      this.applyMaterialOptions()
+    }
+
+    this.dataSource.show = this.options.visible
+    if (this.options.visible) this.startRenderLoop()
+    else this.stopRenderLoop()
+    this.viewer.scene.requestRender()
+  }
+
+  show(): void {
+    if (this.destroyed) return
+    this.options = { ...this.options, visible: true }
+    this.dataSource.show = true
+    this.startRenderLoop()
+    this.viewer.scene.requestRender()
+  }
+
+  hide(): void {
+    if (this.destroyed) return
+    this.options = { ...this.options, visible: false }
+    this.dataSource.show = false
+    this.stopRenderLoop()
+    this.viewer.scene.requestRender()
+  }
+
+  flyTo(options: WaterSurfaceFlyToOptions = {}): void {
+    if (this.destroyed) return
+
+    const bounds = getPositionBounds(this.options.polygon, 1200)
+    this.viewer.camera.flyToBoundingSphere(new BoundingSphere(bounds.center, bounds.radius), {
+      duration: options.duration ?? 1,
+      offset: new HeadingPitchRange(0, options.pitch ?? -0.72, bounds.radius * (options.rangeMultiplier ?? 2.8)),
+    })
+  }
+
+  destroy(): void {
+    if (this.destroyed) return
+
+    this.destroyed = true
+    this.stopRenderLoop()
+    this.dataSource.entities.removeAll()
+    this.waterEntity = null
+    this.outlineEntity = null
+    this.material = null
+    this.viewer.dataSources.remove(this.dataSource, true)
+    this.viewer.scene.requestRender()
+  }
+
+  isVisible(): boolean {
+    return this.options.visible
+  }
+
+  isDestroyed(): boolean {
+    return this.destroyed
+  }
+
+  getOptions(): NormalizedWaterSurfaceOptions {
+    return {
+      ...this.options,
+      polygon: clonePositions(this.options.polygon),
+    }
+  }
+
+  private renderEntities(): void {
+    clearEntities(this.dataSource)
+    this.material = createWaterSurfaceMaterialProperty(this.options)
+
+    this.waterEntity = this.dataSource.entities.add({
+      id: 'geo-effect-kit-water-surface-polygon',
+      polygon: {
+        hierarchy: new PolygonHierarchy(positionsToCartesiansAtHeight(this.options.polygon, this.options.height)),
+        material: this.material,
+        perPositionHeight: this.options.height > 0,
+        outline: false,
+      },
+    })
+
+    this.syncOutlineEntity()
+  }
+
+  private applyMaterialOptions(): void {
+    if (!this.material) return
+
+    Object.assign(this.material.uniforms, createWaterSurfaceUniforms(this.options))
+  }
+
+  private syncOutlineEntity(): void {
+    if (!this.options.outline) return
+
+    this.outlineEntity = this.dataSource.entities.add({
+      id: 'geo-effect-kit-water-surface-outline',
+      polyline: {
+        positions: positionsToCartesiansAtHeight(this.options.polygon, this.options.height + 1),
+        clampToGround: this.options.height <= 0,
+        width: 3,
+        material: new PolylineGlowMaterialProperty({
+          glowPower: 0.2,
+          color: Color.fromCssColorString(this.options.color).withAlpha(0.72),
+        }),
+      },
+    })
+  }
+
+  private startRenderLoop(): void {
+    if (this.renderFrame || !this.options.visible || typeof window === 'undefined') return
+
+    const tick = () => {
+      if (this.destroyed || !this.options.visible) {
+        this.renderFrame = 0
+        return
+      }
+      this.viewer.scene.requestRender()
+      this.renderFrame = window.requestAnimationFrame(tick)
+    }
+
+    this.renderFrame = window.requestAnimationFrame(tick)
+  }
+
+  private stopRenderLoop(): void {
+    if (!this.renderFrame || typeof window === 'undefined') {
+      this.renderFrame = 0
+      return
+    }
+
+    window.cancelAnimationFrame(this.renderFrame)
+    this.renderFrame = 0
   }
 }
 
@@ -3496,6 +4261,26 @@ function createTemperatureFieldMaterial(options: NormalizedTemperatureFieldOptio
   return Material.fromType(GEO_TEMPERATURE_FIELD_MATERIAL_TYPE, createTemperatureFieldUniforms(options))
 }
 
+function createSceneWeatherUniforms(options: NormalizedSceneWeatherOptions): Record<string, unknown> {
+  return {
+    weatherType: getSceneWeatherTypeUniform(options.type),
+    intensity: options.intensity,
+    speed: options.speed,
+    windDirection: options.windDirection,
+    color: Color.fromCssColorString(options.color).withAlpha(1),
+  }
+}
+
+function createPostProcessUniforms(options: NormalizedPostProcessOptions): Record<string, unknown> {
+  return {
+    effectType: getPostProcessTypeUniform(options.type),
+    strength: options.strength,
+    brightness: options.brightness,
+    contrast: options.contrast,
+    saturation: options.saturation,
+  }
+}
+
 function createTemperatureFieldUniforms(options: NormalizedTemperatureFieldOptions): Record<string, unknown> {
   const stops = normalizeTemperatureFieldStops(options.stops)
   const seedVector = getTemperatureFieldSeedVector(options.seed)
@@ -3586,6 +4371,27 @@ function createShieldDomeMaterialProperty(options: NormalizedShieldDomeOptions):
   })
 }
 
+function createWaterSurfaceMaterialProperty(options: NormalizedWaterSurfaceOptions): DynamicCesiumMaterialProperty {
+  registerWaterSurfaceMaterial()
+  return new DynamicCesiumMaterialProperty(GEO_WATER_SURFACE_MATERIAL_TYPE, createWaterSurfaceUniforms(options))
+}
+
+function createWaterSurfaceUniforms(options: NormalizedWaterSurfaceOptions): Record<string, unknown> {
+  return {
+    color: Color.fromCssColorString(options.color).withAlpha(1),
+    opacity: options.opacity,
+    speed: options.speed,
+    waterType: getWaterSurfaceTypeUniform(options.type),
+    waveStrength: options.waveStrength,
+    reflectionStrength: options.reflectionStrength,
+    distortionScale: options.distortionScale,
+    reflectivity: options.reflectivity,
+    refractionStrength: options.refractionStrength,
+    fresnelPower: options.fresnelPower,
+    flowDirection: options.flowDirection,
+  }
+}
+
 function registerLightWallMaterial(): void {
   registerMaterial(GEO_LIGHT_WALL_MATERIAL_TYPE, {
     color: Color.CYAN,
@@ -3618,6 +4424,22 @@ function registerShieldDomeMaterial(): void {
   }, buildShieldDomeMaterialSource())
 }
 
+function registerWaterSurfaceMaterial(): void {
+  registerMaterial(GEO_WATER_SURFACE_MATERIAL_TYPE, {
+    color: Color.CYAN,
+    opacity: 0.72,
+    speed: 1,
+    waterType: 1,
+    waveStrength: 0.48,
+    reflectionStrength: 0.36,
+    distortionScale: 18,
+    reflectivity: 0.58,
+    refractionStrength: 0.42,
+    fresnelPower: 4,
+    flowDirection: 90,
+  }, buildWaterSurfaceMaterialSource())
+}
+
 function registerMaterial(type: string, uniforms: Record<string, unknown>, source: string): void {
   type MaterialCache = {
     getMaterial: (materialType: string) => unknown
@@ -3647,6 +4469,14 @@ function normalizeRippleSpreadType(type: RippleSpreadOptions['type']): RippleSpr
   return RIPPLE_SPREAD_TYPE_VALUES.includes(type as RippleSpreadType) ? (type as RippleSpreadType) : 'water'
 }
 
+function normalizeSceneWeatherType(type: SceneWeatherOptions['type']): SceneWeatherType {
+  return SCENE_WEATHER_TYPE_VALUES.includes(type as SceneWeatherType) ? (type as SceneWeatherType) : 'rain'
+}
+
+function normalizePostProcessType(type: PostProcessOptions['type']): PostProcessType {
+  return POST_PROCESS_TYPE_VALUES.includes(type as PostProcessType) ? (type as PostProcessType) : 'bloom'
+}
+
 function normalizePolylineFlowType(type: PolylineFlowOptions['type']): PolylineFlowType {
   return POLYLINE_FLOW_TYPE_VALUES.includes(type as PolylineFlowType) ? (type as PolylineFlowType) : 'dispatch'
 }
@@ -3667,6 +4497,10 @@ function normalizeShieldDomeType(type: ShieldDomeOptions['type']): ShieldDomeTyp
   return SHIELD_DOME_TYPE_VALUES.includes(type as ShieldDomeType) ? (type as ShieldDomeType) : 'hex'
 }
 
+function normalizeWaterSurfaceType(type: WaterSurfaceOptions['type']): WaterSurfaceType {
+  return WATER_SURFACE_TYPE_VALUES.includes(type as WaterSurfaceType) ? (type as WaterSurfaceType) : 'river'
+}
+
 function getRadarScanTypeUniform(type: RadarScanType): number {
   if (type === 'classic') return 1
   if (type === 'sector') return 2
@@ -3678,6 +4512,22 @@ function getRippleSpreadTypeUniform(type: RippleSpreadType): number {
   if (type === 'water') return 1
   if (type === 'energy') return 2
   return 3
+}
+
+function getSceneWeatherTypeUniform(type: SceneWeatherType): number {
+  if (type === 'rain') return 1
+  if (type === 'snow') return 2
+  if (type === 'fog') return 3
+  return 4
+}
+
+function getPostProcessTypeUniform(type: PostProcessType): number {
+  if (type === 'bloom') return 1
+  if (type === 'night-vision') return 2
+  if (type === 'black-white') return 3
+  if (type === 'brightness') return 4
+  if (type === 'mosaic') return 5
+  return 6
 }
 
 function getLightWallTypeUniform(type: LightWallType): number {
@@ -3702,6 +4552,12 @@ function getShieldDomeTypeUniform(type: ShieldDomeType): number {
   if (type === 'matrix') return 3
   if (type === 'aegis') return 4
   return 5
+}
+
+function getWaterSurfaceTypeUniform(type: WaterSurfaceType): number {
+  if (type === 'river') return 1
+  if (type === 'lake') return 2
+  return 3
 }
 
 function getPolylineFlowColor(type: PolylineFlowType, color: string): Color {
