@@ -1,0 +1,89 @@
+{
+  "id": "pipe-flow",
+  "name": "Pipe Flow",
+  "packageName": "@ztgk/geo-effect-kit",
+  "importName": "createPipeFlowEffect",
+  "summary": "A transparent Cesium water-pipe route effect with shell glow, internal flow, pressure waves, bubbles, and rounded bends.",
+  "useCases": [
+    "Transparent water-pipe or utility-network flow visualization",
+    "Pump station, pipeline pressure, and drainage dispatch dashboards",
+    "Command-center route demos that need a more physical flow than simple light trails"
+  ],
+  "options": {
+    "properties": {
+      "positions": {
+        "type": "array",
+        "required": true,
+        "description": "WGS84 pipe route points. Each point supports longitude, latitude, and optional height."
+      },
+      "color": {
+        "type": "string",
+        "default": "#45dfff",
+        "description": "CSS color used by the pipe shell, water core, pressure waves, and bubbles."
+      },
+      "speed": {
+        "type": "number",
+        "default": 1,
+        "minimum": 0.05,
+        "maximum": 8,
+        "description": "Flow speed multiplier for water movement, pressure waves, and bubbles."
+      },
+      "width": {
+        "type": "number",
+        "default": 12,
+        "minimum": 1,
+        "description": "Water core width in screen pixels. The transparent shell and highlights are layered wider around it."
+      },
+      "pipeOpacity": {
+        "type": "number",
+        "default": 0.32,
+        "minimum": 0,
+        "maximum": 1,
+        "description": "Opacity of the transparent outer pipe shell."
+      },
+      "waterOpacity": {
+        "type": "number",
+        "default": 0.86,
+        "minimum": 0,
+        "maximum": 1,
+        "description": "Opacity of the animated internal water core and pressure waves."
+      },
+      "cornerRadius": {
+        "type": "number",
+        "default": 0.18,
+        "minimum": 0,
+        "maximum": 0.45,
+        "description": "Corner rounding strength for pipe bends. 0 keeps hard elbows; higher values insert smooth bend samples."
+      },
+      "bubbleDensity": {
+        "type": "number",
+        "default": 6,
+        "minimum": 0,
+        "maximum": 16,
+        "description": "Number of animated bubble streaks inside the pipe. 0 disables bubble entities."
+      },
+      "clampToGround": {
+        "type": "boolean",
+        "default": true,
+        "description": "Clamp pipe polylines to terrain."
+      }
+    }
+  },
+  "methods": ["update", "show", "hide", "flyTo", "destroy", "isVisible", "isDestroyed", "getOptions"],
+  "examples": {
+    "minimal": {
+      "language": "ts",
+      "code": "import { createPipeFlowEffect } from '@ztgk/geo-effect-kit'\n\nconst pipe = createPipeFlowEffect(viewer, {\n  positions: [\n    { longitude: 116.285, latitude: 39.87 },\n    { longitude: 116.335, latitude: 39.92 },\n    { longitude: 116.394, latitude: 39.91 },\n    { longitude: 116.452, latitude: 39.95 },\n    { longitude: 116.505, latitude: 39.9 },\n  ],\n  color: '#45dfff',\n  speed: 1.35,\n  width: 14,\n  pipeOpacity: 0.34,\n  waterOpacity: 0.88,\n  cornerRadius: 0.22,\n  bubbleDensity: 8,\n})\n\npipe.flyTo()\npipe.destroy()\n"
+    },
+    "update": {
+      "language": "ts",
+      "code": "pipe.update({\n  color: '#73f7ff',\n  speed: 2.1,\n  width: 16,\n  pipeOpacity: 0.42,\n  waterOpacity: 0.92,\n  cornerRadius: 0.28,\n  bubbleDensity: 12,\n})\n"
+    }
+  },
+  "notes": [
+    "Pass an existing Cesium Viewer; the SDK does not create or own the viewer.",
+    "The effect is built from layered Cesium polylines: transparent pipe shell, white rim highlight, water core, pressure waves, and moving bubble streaks.",
+    "Changing positions, clampToGround, cornerRadius, or bubbleDensity rebuilds route entities; color, speed, width, and opacities update live.",
+    "Call destroy() during page cleanup to remove the data source and render loop."
+  ]
+}

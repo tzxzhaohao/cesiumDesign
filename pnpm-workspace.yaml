@@ -1,0 +1,10 @@
+packages:
+  - "packages/*"
+  - "apps/*"
+  - "mcp-server"
+
+onlyBuiltDependencies:
+  - esbuild
+
+allowBuilds:
+  esbuild: true

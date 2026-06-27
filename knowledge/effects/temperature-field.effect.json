@@ -1,0 +1,102 @@
+{
+  "id": "temperature-field",
+  "name": "Temperature Field",
+  "packageName": "@ztgk/geo-effect-kit",
+  "importName": "createTemperatureFieldEffect",
+  "summary": "A static Cesium shader surface for temperature or fire-risk fields, clipped by WGS84 polygons and compatible with FireHotspot fire prediction surfaces.",
+  "useCases": [
+    "FireHotspot 火情预测页面连续风险面",
+    "卫星遥感温度场、干旱场或热异常区域展示",
+    "行政区边界内的静态风险色带、等值线和热点区域"
+  ],
+  "options": {
+    "properties": {
+      "polygons": {
+        "type": "array",
+        "required": true,
+        "description": "WGS84 polygon list. Compatible with FireHotspot RegionBoundaryPolygon: { outer: [lng, lat][], holes?: [lng, lat][][] }."
+      },
+      "stops": {
+        "type": "array",
+        "default": [
+          { "value": 0, "color": "#57c7ff", "label": "低风险" },
+          { "value": 20, "color": "#6ddb73", "label": "较低" },
+          { "value": 40, "color": "#ffd047", "label": "中风险" },
+          { "value": 60, "color": "#ff8a2d", "label": "较高" },
+          { "value": 80, "color": "#ff3e2f", "label": "高风险" }
+        ],
+        "description": "Color ramp stops. FireHotspot riskField.stops can be passed directly."
+      },
+      "samples": {
+        "type": "array",
+        "default": [],
+        "description": "Optional temperature control points: { longitude, latitude, value, type? }[]. When provided, the shader interpolates the color field from these points."
+      },
+      "seed": {
+        "type": "number",
+        "default": 0,
+        "description": "Stable seed used by the shader to position static hot/cold areas."
+      },
+      "opacity": {
+        "type": "number",
+        "default": 0.76,
+        "minimum": 0,
+        "maximum": 1,
+        "description": "Overall surface opacity."
+      },
+      "noiseStrength": {
+        "type": "number",
+        "default": 0.42,
+        "minimum": 0,
+        "maximum": 1,
+        "description": "Strength of non-animated shader texture variation."
+      },
+      "contourLines": {
+        "type": "boolean",
+        "default": true,
+        "description": "Show subtle isoline bands in the shader."
+      },
+      "contourStrength": {
+        "type": "number",
+        "default": 0.18,
+        "minimum": 0,
+        "maximum": 1,
+        "description": "Isoline intensity."
+      },
+      "outline": {
+        "type": "boolean",
+        "default": true,
+        "description": "Render administrative boundary glow lines with Cesium polylines."
+      },
+      "outlineColor": {
+        "type": "string",
+        "default": "#dff8ff",
+        "description": "CSS color for boundary glow lines."
+      },
+      "outlineWidth": {
+        "type": "number",
+        "default": 5,
+        "minimum": 1,
+        "description": "Boundary line width in pixels."
+      }
+    }
+  },
+  "methods": ["update", "show", "hide", "flyTo", "destroy", "isVisible", "isDestroyed", "getOptions"],
+  "examples": {
+    "minimal": {
+      "language": "ts",
+      "code": "import { createTemperatureFieldEffect } from '@ztgk/geo-effect-kit'\n\nconst field = createTemperatureFieldEffect(viewer, {\n  polygons: [\n    {\n      outer: [\n        [116.11, 39.76],\n        [116.62, 39.88],\n        [116.56, 40.06],\n        [116.18, 40.02],\n      ],\n      holes: [],\n    },\n  ],\n  seed: 9528,\n  opacity: 0.76,\n})\n\nfield.flyTo()\nfield.destroy()\n"
+    },
+    "fireHotspot": {
+      "language": "ts",
+      "code": "import { createTemperatureFieldEffect } from '@ztgk/geo-effect-kit'\n\nconst field = createTemperatureFieldEffect(viewer, {\n  polygons: riskSurface.polygons,\n  seed: riskSurface.riskField.seed,\n  opacity: riskSurface.riskField.opacity,\n  stops: riskSurface.riskField.stops,\n  contourLines: true,\n  contourStrength: 0.18,\n  outline: true,\n})\n\n// Later, when prediction data changes:\nfield.update({\n  polygons: nextRiskSurface.polygons,\n  seed: nextRiskSurface.riskField.seed,\n  stops: nextRiskSurface.riskField.stops,\n  opacity: nextRiskSurface.riskField.opacity,\n})\n\nfield.destroy()\n"
+    }
+  },
+  "notes": [
+    "The effect uses Cesium Material fabric shader code and does not use czm_frameNumber, so it is static by design.",
+    "Coordinates are WGS84 longitude/latitude and can reuse FireHotspot RegionBoundaryPolygon data directly.",
+    "Temperature samples are converted into shader uniforms and act as control points for local field colors.",
+    "Geometry changes rebuild the ground primitive; color ramp, opacity, contours, and seed update material uniforms.",
+    "Call destroy() during route cleanup to remove the primitive and outline data source."
+  ]
+}

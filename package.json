@@ -1,0 +1,15 @@
+{
+  "name": "geo-effect-kit-workspace",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "packageManager": "pnpm@11.7.0",
+  "scripts": {
+    "build": "pnpm --filter @ztgk/geo-effect-kit build && pnpm --filter @ztgk/geo-effect-kit-mcp build && pnpm --filter geo-effect-kit-demo build",
+    "test": "pnpm --filter @ztgk/geo-effect-kit test && pnpm --filter @ztgk/geo-effect-kit-mcp test && pnpm --filter geo-effect-kit-demo test",
+    "typecheck": "pnpm --filter @ztgk/geo-effect-kit typecheck && pnpm --filter @ztgk/geo-effect-kit-mcp typecheck && pnpm --filter geo-effect-kit-demo typecheck"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

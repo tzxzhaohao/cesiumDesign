@@ -1,0 +1,88 @@
+{
+  "id": "shield-dome",
+  "name": "Shield Dome",
+  "packageName": "@ztgk/geo-effect-kit",
+  "importName": "createShieldDomeEffect",
+  "summary": "A grounded Cesium half-dome with grid lines, scan bands, energy pulses, and an optional glowing base ring.",
+  "useCases": [
+    "Protected zone or emergency command range",
+    "High-impact GitHub homepage demo",
+    "Energy shield, defense perimeter, or futuristic safety area"
+  ],
+  "options": {
+    "properties": {
+      "center": {
+        "type": "object",
+        "required": true,
+        "description": "WGS84 dome center point. Optional height is supported."
+      },
+      "radiusMeters": {
+        "type": "number",
+        "required": true,
+        "minimum": 1,
+        "description": "Dome radius in meters."
+      },
+      "type": {
+        "type": "string",
+        "default": "hex",
+        "enum": ["hex", "plasma", "matrix", "aegis", "storm"],
+        "description": "Dome visual style."
+      },
+      "color": {
+        "type": "string",
+        "default": "#57f7ff",
+        "description": "CSS color used by the dome material."
+      },
+      "speed": {
+        "type": "number",
+        "default": 1,
+        "minimum": 0.05,
+        "maximum": 8,
+        "description": "Material animation speed multiplier."
+      },
+      "opacity": {
+        "type": "number",
+        "default": 0.56,
+        "minimum": 0,
+        "maximum": 1,
+        "description": "Overall dome opacity multiplier."
+      },
+      "gridDensity": {
+        "type": "number",
+        "default": 14,
+        "minimum": 2,
+        "maximum": 40,
+        "description": "Grid cell density in the dome material."
+      },
+      "pulseStrength": {
+        "type": "number",
+        "default": 0.72,
+        "minimum": 0,
+        "maximum": 1,
+        "description": "Energy pulse intensity."
+      },
+      "ring": {
+        "type": "boolean",
+        "default": true,
+        "description": "Show the glowing base ring."
+      }
+    }
+  },
+  "methods": ["update", "show", "hide", "flyTo", "destroy", "isVisible", "isDestroyed", "getOptions"],
+  "examples": {
+    "minimal": {
+      "language": "ts",
+      "code": "import { createShieldDomeEffect } from '@ztgk/geo-effect-kit'\n\nconst dome = createShieldDomeEffect(viewer, {\n  center: { longitude: 116.391, latitude: 39.907 },\n  radiusMeters: 12000,\n  type: 'hex',\n  color: '#57f7ff',\n  speed: 1,\n  opacity: 0.56,\n  gridDensity: 14,\n  pulseStrength: 0.72,\n})\n\n// Great as a GitHub homepage demo.\ndome.flyTo()\ndome.destroy()\n"
+    },
+    "update": {
+      "language": "ts",
+      "code": "dome.update({\n  type: 'matrix',\n  color: '#b9ff4a',\n  speed: 2,\n  gridDensity: 20,\n  pulseStrength: 0.9,\n})\n"
+    }
+  },
+  "notes": [
+    "Pass an existing Cesium Viewer; the SDK does not create or own the viewer.",
+    "The effect uses a Cesium EllipsoidGraphics half-dome plus GeoShieldDomeMaterial.",
+    "Changing center or radiusMeters rebuilds dome geometry; material style updates live.",
+    "Call destroy() during page cleanup to remove the data source and render loop."
+  ]
+}

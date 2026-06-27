@@ -1,0 +1,80 @@
+{
+  "id": "fire-billboard",
+  "name": "Fire Billboard",
+  "packageName": "@ztgk/geo-effect-kit",
+  "importName": "createFireBillboardEffect",
+  "summary": "A Cesium billboard fire-point overlay that accepts user-provided WGS84 longitude/latitude points and GIF assets, then decodes GIFs into animated billboard frames when the browser supports it.",
+  "useCases": [
+    "FireHotspot 实时火点和预警火点标注",
+    "卫星火情、热异常、告警事件点位动画",
+    "需要用户为不同点位传入不同 GIF 图标的 Cesium 点图层"
+  ],
+  "options": {
+    "properties": {
+      "points": {
+        "type": "array",
+        "required": true,
+        "description": "User-provided fire points. Each item must include WGS84 longitude, latitude, and gif URL or data URL; optional fields are id, height, and label.",
+        "items": {
+          "type": "object",
+          "properties": {
+            "longitude": { "type": "number", "required": true },
+            "latitude": { "type": "number", "required": true },
+            "height": { "type": "number", "default": 0 },
+            "gif": { "type": "string", "required": true },
+            "id": { "type": "string" },
+            "label": { "type": "string" }
+          }
+        }
+      },
+      "scale": {
+        "type": "number",
+        "default": 1,
+        "minimum": 0.1,
+        "maximum": 8,
+        "description": "Billboard scale multiplier. The GIF keeps its original pixel size; use scale to enlarge or reduce the rendered billboard."
+      },
+      "frameIntervalMs": {
+        "type": "number",
+        "default": 80,
+        "minimum": 16,
+        "maximum": 2000,
+        "description": "Playback interval after the GIF has been decoded into billboard frame images."
+      },
+      "clampToGround": {
+        "type": "boolean",
+        "default": true,
+        "description": "Clamp fire billboards to terrain or keep explicit point height."
+      },
+      "disableDepthTestDistance": {
+        "type": "number",
+        "default": "Infinity",
+        "minimum": 0,
+        "description": "Cesium billboard depth-test disable distance."
+      },
+      "visible": {
+        "type": "boolean",
+        "default": true,
+        "description": "Initial layer visibility."
+      }
+    }
+  },
+  "methods": ["update", "show", "hide", "flyTo", "destroy", "isVisible", "isDestroyed", "getOptions"],
+  "examples": {
+    "minimal": {
+      "language": "ts",
+      "code": "import { createFireBillboardEffect } from '@ztgk/geo-effect-kit'\n\nconst fireBillboard = createFireBillboardEffect(viewer, {\n  points: [\n    { longitude: 116.322, latitude: 39.968, gif: '/fire-red-billboard.gif' },\n    { longitude: 116.372, latitude: 39.932, gif: '/fire-orange-billboard.gif' },\n    { longitude: 116.431, latitude: 39.974, gif: 'https://upload.wikimedia.org/wikipedia/commons/c/c1/Torche.gif' },\n    { longitude: 116.486, latitude: 39.908, gif: '/fire-green-billboard.gif' },\n  ],\n  scale: 1,\n  frameIntervalMs: 72,\n})\n\nfireBillboard.flyTo()\nfireBillboard.destroy()\n"
+    },
+    "update": {
+      "language": "ts",
+      "code": "fireBillboard.update({\n  points: latestHotspots.map((item) => ({\n    id: item.id,\n    longitude: item.longitude,\n    latitude: item.latitude,\n    gif: item.alarmLevel === 'high' ? highFireGif : normalFireGif,\n    label: item.satellite,\n  })),\n})\n"
+    }
+  },
+  "notes": [
+    "The SDK does not provide a default fire asset; callers pass every point and GIF explicitly.",
+    "Billboards keep the original GIF dimensions. Use scale when a business page needs a larger or smaller rendered marker.",
+    "GIFs are shown immediately as the billboard image and are decoded into frame data URLs when fetch, document, and canvas APIs are available.",
+    "Decoded frame lists are cached by GIF URL, so many points can reuse one GIF without repeated parsing.",
+    "Call destroy() during route cleanup to remove the data source and clear the frame timer."
+  ]
+}

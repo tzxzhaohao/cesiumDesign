@@ -1,0 +1,92 @@
+{
+  "id": "scan-cone",
+  "name": "Scan Cone",
+  "packageName": "@ztgk/geo-effect-kit",
+  "importName": "createScanConeEffect",
+  "summary": "A rotating volumetric Cesium cone for searchlights, radar beams, camera coverage, drones, and alarm ranges.",
+  "useCases": [
+    "Camera or base-station coverage visualization",
+    "Drone detection and rotating search cone",
+    "Radar, alarm, or spotlight volume"
+  ],
+  "options": {
+    "properties": {
+      "center": {
+        "type": "object",
+        "required": true,
+        "description": "WGS84 origin point. Optional height is supported."
+      },
+      "type": {
+        "type": "string",
+        "default": "searchlight",
+        "enum": ["searchlight", "radar", "camera", "drone", "alarm"],
+        "description": "Cone visual style."
+      },
+      "color": {
+        "type": "string",
+        "default": "#7cf7ff",
+        "description": "CSS color used by the cone material."
+      },
+      "radiusMeters": {
+        "type": "number",
+        "default": 1800,
+        "minimum": 1,
+        "description": "Minimum bottom radius in meters."
+      },
+      "lengthMeters": {
+        "type": "number",
+        "default": 4800,
+        "minimum": 1,
+        "description": "Cone length in meters."
+      },
+      "speed": {
+        "type": "number",
+        "default": 1,
+        "minimum": 0.05,
+        "maximum": 8,
+        "description": "Rotation and material animation speed multiplier."
+      },
+      "opacity": {
+        "type": "number",
+        "default": 0.62,
+        "minimum": 0,
+        "maximum": 1,
+        "description": "Overall cone opacity multiplier."
+      },
+      "aperture": {
+        "type": "number",
+        "default": 34,
+        "minimum": 8,
+        "maximum": 120,
+        "description": "Cone aperture angle in degrees."
+      },
+      "heading": {
+        "type": "number",
+        "default": 0,
+        "description": "Initial heading in degrees."
+      },
+      "showOrigin": {
+        "type": "boolean",
+        "default": true,
+        "description": "Show a point marker at the cone origin."
+      }
+    }
+  },
+  "methods": ["update", "show", "hide", "flyTo", "destroy", "isVisible", "isDestroyed", "getOptions"],
+  "examples": {
+    "minimal": {
+      "language": "ts",
+      "code": "import { createScanConeEffect } from '@ztgk/geo-effect-kit'\n\nconst cone = createScanConeEffect(viewer, {\n  center: { longitude: 116.391, latitude: 39.907 },\n  type: 'searchlight',\n  color: '#7cf7ff',\n  radiusMeters: 2200,\n  lengthMeters: 6200,\n  speed: 1.2,\n  aperture: 38,\n})\n\ncone.flyTo()\ncone.destroy()\n"
+    },
+    "update": {
+      "language": "ts",
+      "code": "cone.update({\n  type: 'alarm',\n  color: '#ff315a',\n  speed: 2.6,\n  heading: 45,\n  showOrigin: false,\n})\n"
+    }
+  },
+  "notes": [
+    "Pass an existing Cesium Viewer; the SDK does not create or own the viewer.",
+    "The effect uses Cesium CylinderGraphics with topRadius 0 and a custom GeoScanConeMaterial.",
+    "Changing center, radiusMeters, lengthMeters, or aperture rebuilds cone geometry.",
+    "Call destroy() during page cleanup to remove the data source and render loop."
+  ]
+}

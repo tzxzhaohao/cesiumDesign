@@ -1,0 +1,9 @@
+node_modules
+dist
+coverage
+.superpowers
+*.log
+.DS_Store
+.env
+.env.local
+.env.*.local

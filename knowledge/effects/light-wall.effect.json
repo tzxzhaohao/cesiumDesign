@@ -1,0 +1,86 @@
+{
+  "id": "light-wall",
+  "name": "Light Wall",
+  "packageName": "@ztgk/geo-effect-kit",
+  "importName": "createLightWallEffect",
+  "summary": "A transparent dynamic Cesium boundary wall with flowing texture, scan lines, and breathing highlights.",
+  "useCases": [
+    "Security perimeter or restricted zone boundary",
+    "Campus, park, and industrial area visualization",
+    "Command-center warning fence and data boundary"
+  ],
+  "options": {
+    "properties": {
+      "positions": {
+        "type": "array",
+        "required": true,
+        "description": "WGS84 boundary points. The SDK closes polygons automatically when possible."
+      },
+      "type": {
+        "type": "string",
+        "default": "security",
+        "enum": ["security", "warning", "data", "fence", "pulse"],
+        "description": "Wall visual style."
+      },
+      "color": {
+        "type": "string",
+        "default": "#27f5ff",
+        "description": "CSS color used by the wall material."
+      },
+      "height": {
+        "type": "number",
+        "default": 3200,
+        "minimum": 1,
+        "description": "Wall height in meters."
+      },
+      "speed": {
+        "type": "number",
+        "default": 1,
+        "minimum": 0.05,
+        "maximum": 8,
+        "description": "Texture flow speed multiplier."
+      },
+      "opacity": {
+        "type": "number",
+        "default": 0.72,
+        "minimum": 0,
+        "maximum": 1,
+        "description": "Overall wall opacity multiplier."
+      },
+      "scanLineCount": {
+        "type": "number",
+        "default": 4,
+        "minimum": 1,
+        "maximum": 16,
+        "description": "Number of vertical scan lines in the animated wall material."
+      },
+      "breathing": {
+        "type": "boolean",
+        "default": true,
+        "description": "Enable breathing highlight brightness."
+      },
+      "outline": {
+        "type": "boolean",
+        "default": true,
+        "description": "Show a glowing top outline."
+      }
+    }
+  },
+  "methods": ["update", "show", "hide", "flyTo", "destroy", "isVisible", "isDestroyed", "getOptions"],
+  "examples": {
+    "minimal": {
+      "language": "ts",
+      "code": "import { createLightWallEffect } from '@ztgk/geo-effect-kit'\n\nconst wall = createLightWallEffect(viewer, {\n  positions: [\n    { longitude: 116.337, latitude: 39.879 },\n    { longitude: 116.448, latitude: 39.882 },\n    { longitude: 116.468, latitude: 39.962 },\n  ],\n  type: 'security',\n  color: '#27f5ff',\n  height: 3600,\n  speed: 1.1,\n  opacity: 0.72,\n})\n\nwall.flyTo()\nwall.destroy()\n"
+    },
+    "update": {
+      "language": "ts",
+      "code": "wall.update({\n  type: 'warning',\n  color: '#ffbf3d',\n  speed: 2,\n  scanLineCount: 8,\n  breathing: false,\n})\n"
+    }
+  },
+  "notes": [
+    "Pass an existing Cesium Viewer; the SDK does not create or own the viewer.",
+    "The effect uses Cesium WallGraphics plus GeoLightWallMaterial.",
+    "Changing positions or height rebuilds wall geometry; material parameters update live.",
+    "Call destroy() during page cleanup to remove the data source and render loop."
+  ]
+}

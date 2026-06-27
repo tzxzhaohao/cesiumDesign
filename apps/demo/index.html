@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>geo-effect-kit examples</title>
+    <script type="module" src="/src/main.ts"></script>
+  </head>
+  <body>
+    <div id="app">
+      <nav class="example-nav" aria-label="Effect examples">
+        <a class="brand" href="/">
+          <span class="brand-mark"></span>
+          <span>
+            <strong>geo-effect-kit</strong>
+            <small>Cesium effects</small>
+          </span>
+        </a>
+        <div class="nav-section">
+          <span class="nav-label">Examples</span>
+          <button class="effect-tab active" type="button" data-effect="polyline-flow">
+            <span>polyline-flow</span>
+            <small>dispatch route light</small>
+          </button>
+          <button class="effect-tab" type="button" data-effect="fly-line">
+            <span>fly-line</span>
+            <small>raised arc animation</small>
+          </button>
+          <button class="effect-tab" type="button" data-effect="pipe-flow">
+            <span>pipe-flow</span>
+            <small>transparent water pipe</small>
+          </button>
+          <button class="effect-tab" type="button" data-effect="light-wall">
+            <span>light-wall</span>
+            <small>dynamic perimeter wall</small>
+          </button>
+          <button class="effect-tab" type="button" data-effect="scan-cone">
+            <span>scan-cone</span>
+            <small>volumetric scanner</small>
+          </button>
+          <button class="effect-tab" type="button" data-effect="shield-dome">
+            <span>shield-dome</span>
+            <small>energy protection shell</small>
+          </button>
+          <button class="effect-tab" type="button" data-effect="temperature-field">
+            <span>temperature-field</span>
+            <small>shader risk surface</small>
+          </button>
+          <button class="effect-tab" type="button" data-effect="fire-billboard">
+            <span>fire-billboard</span>
+            <small>gif fire marker</small>
+          </button>
+          <button class="effect-tab" type="button" data-effect="radar-scan">
+            <span>radar-scan</span>
+            <small>rotating radar sweep</small>
+          </button>
+          <button class="effect-tab" type="button" data-effect="ripple-spread">
+            <span>ripple-spread</span>
+            <small>water ripple expansion</small>
+          </button>
+        </div>
+      </nav>
+
+      <main class="stage">
+        <div id="cesiumContainer"></div>
+        <section class="hud" aria-live="polite">
+          <div class="hud-header">
+            <div>
+              <span id="effectId" class="eyebrow">radar-scan</span>
+              <h1 id="effectTitle">Radar Scan</h1>
+            </div>
+            <button id="flyTo" class="icon-button" type="button" aria-label="Fly to effect" title="Fly to effect">⌖</button>
+          </div>
+          <p id="effectDescription" class="description">Circular Cesium ground primitive with animated radar sweep and optional rings.</p>
+
+          <div class="control-grid">
+            <label id="colorField">
+              <span>Color</span>
+              <input id="color" type="color" value="#36d6ff" />
+            </label>
+            <label id="radarTypeField">
+              <span>Radar type</span>
+              <select id="radarType">
+                <option value="classic">classic</option>
+                <option value="sector">sector</option>
+                <option value="pulse">pulse</option>
+                <option value="grid">grid</option>
+              </select>
+            </label>
+            <label id="rippleTypeField" hidden>
+              <span>Ripple type</span>
+              <select id="rippleType">
+                <option value="water">water</option>
+                <option value="energy">energy</option>
+                <option value="soft">soft</option>
+              </select>
+            </label>
+            <label id="flowTypeField" hidden>
+              <span>Flow type</span>
+              <select id="flowType">
+                <option value="dispatch">dispatch</option>
+                <option value="migration">migration</option>
+                <option value="attack">attack</option>
+                <option value="comet">comet</option>
+                <option value="electric">electric</option>
+              </select>
+            </label>
+            <label id="flyModeField" hidden>
+              <span>Fly mode</span>
+              <select id="flyMode">
+                <option value="single-arc">single-arc</option>
+                <option value="hub-spoke">hub-spoke</option>
+                <option value="bidirectional">bidirectional</option>
+              </select>
+            </label>
+            <label id="wallTypeField" hidden>
+              <span>Wall type</span>
+              <select id="wallType">
+                <option value="security">security</option>
+                <option value="warning">warning</option>
+                <option value="data">data</option>
+                <option value="fence">fence</option>
+                <option value="pulse">pulse</option>
+              </select>
+            </label>
+            <label id="coneTypeField" hidden>
+              <span>Cone type</span>
+              <select id="coneType">
+                <option value="searchlight">searchlight</option>
+                <option value="radar">radar</option>
+                <option value="camera">camera</option>
+                <option value="drone">drone</option>
+                <option value="alarm">alarm</option>
+              </select>
+            </label>
+            <label id="domeTypeField" hidden>
+              <span>Dome type</span>
+              <select id="domeType">
+                <option value="hex">hex</option>
+                <option value="plasma">plasma</option>
+                <option value="matrix">matrix</option>
+                <option value="aegis">aegis</option>
+                <option value="storm">storm</option>
+              </select>
+            </label>
+            <label id="radiusField">
+              <span>Radius</span>
+              <input id="radius" type="range" min="5000" max="90000" step="1000" value="22000" />
+              <output id="radiusValue">22,000 m</output>
+            </label>
+            <label id="widthField" hidden>
+              <span>Width</span>
+              <input id="width" type="range" min="1" max="256" step="1" value="7" />
+              <output id="widthValue">7 px</output>
+            </label>
+            <label id="heightField" hidden>
+              <span>Height</span>
+              <input id="height" type="range" min="8" max="64000" step="1" value="3600" />
+              <output id="heightValue">3,600 m</output>
+            </label>
+            <label id="lengthField" hidden>
+              <span>Length</span>
+              <input id="length" type="range" min="1000" max="14000" step="100" value="6200" />
+              <output id="lengthValue">6,200 m</output>
+            </label>
+            <label id="speedField" hidden>
+              <span>Speed</span>
+              <input id="speed" type="range" min="0.05" max="5" step="0.05" value="1" />
+              <output id="speedValue">1.00x</output>
+            </label>
+            <label id="scaleField" hidden>
+              <span>Scale</span>
+              <input id="scale" type="range" min="0.2" max="4" step="0.05" value="1" />
+              <output id="scaleValue">1.00x</output>
+            </label>
+            <label id="scanDurationField">
+              <span>Sweep duration</span>
+              <input id="scanDuration" type="range" min="800" max="9000" step="100" value="3600" />
+              <output id="scanDurationValue">3,600 ms</output>
+            </label>
+            <label id="frameIntervalField" hidden>
+              <span>Frame interval</span>
+              <input id="frameInterval" type="range" min="16" max="300" step="4" value="80" />
+              <output id="frameIntervalValue">80 ms</output>
+            </label>
+            <label id="ringCountField" hidden>
+              <span>Ripple rings</span>
+              <input id="ringCount" type="range" min="1" max="12" step="1" value="4" />
+              <output id="ringCountValue">4 rings</output>
+            </label>
+            <label id="durationField" hidden>
+              <span>Ripple duration</span>
+              <input id="duration" type="range" min="600" max="9000" step="100" value="3200" />
+              <output id="durationValue">3,200 ms</output>
+            </label>
+            <label id="trailLengthField" hidden>
+              <span>Trail length</span>
+              <input id="trailLength" type="range" min="0.02" max="0.95" step="0.01" value="0.32" />
+              <output id="trailLengthValue">0.32</output>
+            </label>
+            <label id="pulseCountField" hidden>
+              <span>Pulse count</span>
+              <input id="pulseCount" type="range" min="1" max="12" step="1" value="3" />
+              <output id="pulseCountValue">3 pulses</output>
+            </label>
+            <label id="cornerRadiusField" hidden>
+              <span>Corner radius</span>
+              <input id="cornerRadius" type="range" min="0" max="0.45" step="0.01" value="0" />
+              <output id="cornerRadiusValue">0.00</output>
+            </label>
+            <label id="pipeOpacityField" hidden>
+              <span>Pipe opacity</span>
+              <input id="pipeOpacity" type="range" min="0" max="1" step="0.01" value="0.32" />
+              <output id="pipeOpacityValue">0.32</output>
+            </label>
+            <label id="bubbleDensityField" hidden>
+              <span>Bubbles</span>
+              <input id="bubbleDensity" type="range" min="0" max="16" step="1" value="6" />
+              <output id="bubbleDensityValue">6 bubbles</output>
+            </label>
+            <label id="scanLineCountField" hidden>
+              <span>Scan lines</span>
+              <input id="scanLineCount" type="range" min="1" max="16" step="1" value="4" />
+              <output id="scanLineCountValue">4 lines</output>
+            </label>
+            <label id="gridDensityField" hidden>
+              <span>Grid density</span>
+              <input id="gridDensity" type="range" min="2" max="40" step="1" value="14" />
+              <output id="gridDensityValue">14 cells</output>
+            </label>
+            <label id="pulseStrengthField" hidden>
+              <span>Pulse strength</span>
+              <input id="pulseStrength" type="range" min="0" max="1" step="0.01" value="0.72" />
+              <output id="pulseStrengthValue">0.72</output>
+            </label>
+            <label id="headingField" hidden>
+              <span>Heading</span>
+              <input id="heading" type="range" min="0" max="360" step="1" value="0" />
+              <output id="headingValue">0 deg</output>
+            </label>
+            <label id="apertureField" hidden>
+              <span>Aperture</span>
+              <input id="aperture" type="range" min="8" max="120" step="1" value="34" />
+              <output id="apertureValue">34 deg</output>
+            </label>
+            <label id="opacityField">
+              <span>Opacity</span>
+              <input id="opacity" type="range" min="0" max="1" step="0.01" value="0.85" />
+              <output id="opacityValue">0.85</output>
+            </label>
+            <label id="ringsField" class="check-row">
+              <input id="rings" type="checkbox" checked />
+              <span>Show radar rings</span>
+            </label>
+            <label id="centerField" class="check-row">
+              <input id="center" type="checkbox" />
+              <span>Show center point</span>
+            </label>
+            <label id="breathingField" class="check-row" hidden>
+              <input id="breathing" type="checkbox" checked />
+              <span>Breathing highlight</span>
+            </label>
+            <label id="outlineField" class="check-row" hidden>
+              <input id="outline" type="checkbox" checked />
+              <span>Show top outline</span>
+            </label>
+            <label id="originField" class="check-row" hidden>
+              <input id="origin" type="checkbox" checked />
+              <span>Show origin point</span>
+            </label>
+            <label id="domeRingField" class="check-row" hidden>
+              <input id="domeRing" type="checkbox" checked />
+              <span>Show base ring</span>
+            </label>
+          </div>
+        </section>
+
+        <aside class="docs-panel">
+          <div class="docs-tabs" role="tablist" aria-label="Effect details">
+            <button class="docs-tab active" type="button" data-doc-tab="usage">Usage</button>
+            <button class="docs-tab" type="button" data-doc-tab="notes">Notes</button>
+          </div>
+          <pre id="codeExample" class="code-block"></pre>
+          <div id="notesPanel" class="notes" hidden></div>
+        </aside>
+      </main>
+    </div>
+  </body>
+</html>

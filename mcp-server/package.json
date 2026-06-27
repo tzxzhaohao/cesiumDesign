@@ -1,0 +1,25 @@
+{
+  "name": "@ztgk/geo-effect-kit-mcp",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "description": "MCP server helpers for geo-effect-kit knowledge manifests.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "geo-effect-kit-mcp": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "pnpm run build && node --test test/*.test.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.24.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "typescript": "^5.9.3"
+  }
+}

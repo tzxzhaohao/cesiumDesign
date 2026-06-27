@@ -1,0 +1,32 @@
+{
+  "name": "@ztgk/geo-effect-kit",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Framework-neutral Cesium effects SDK for geospatial visualizations.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "pnpm run build && node --test test/*.test.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "peerDependencies": {
+    "cesium": ">=1.120.0"
+  },
+  "devDependencies": {
+    "cesium": "^1.136.0",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "gifuct-js": "^2.1.2"
+  }
+}

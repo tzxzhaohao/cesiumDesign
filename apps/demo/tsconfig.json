@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["vite/client"],
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "baseUrl": ".",
+    "paths": {
+      "@ztgk/geo-effect-kit": ["../../packages/core/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*.ts", "vite.config.ts"]
+}

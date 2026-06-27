@@ -1,0 +1,102 @@
+{
+  "id": "polyline-flow",
+  "name": "Polyline Flow",
+  "packageName": "@ztgk/geo-effect-kit",
+  "importName": "createPolylineFlowEffect",
+  "summary": "A Cesium route flow-light effect for command dispatch routes, migration lines, attack paths, and high-speed data tracks.",
+  "useCases": [
+    "Command dispatch route highlighting",
+    "Migration, logistics, or traffic flow lines",
+    "Attack path or high-energy route animation"
+  ],
+  "options": {
+    "properties": {
+      "positions": {
+        "type": "array",
+        "required": true,
+        "description": "WGS84 route points. Each point supports longitude, latitude, and optional height."
+      },
+      "type": {
+        "type": "string",
+        "default": "dispatch",
+        "enum": ["dispatch", "migration", "attack", "comet", "electric"],
+        "description": "Flow style. dispatch is clean route light, migration is soft continuous movement, attack is sharper and more aggressive, comet has a bright head, and electric adds an energetic color personality."
+      },
+      "color": {
+        "type": "string",
+        "default": "#33f7ff",
+        "description": "CSS color used by the base line and moving trails."
+      },
+      "speed": {
+        "type": "number",
+        "default": 1,
+        "minimum": 0.05,
+        "maximum": 8,
+        "description": "Flow speed multiplier."
+      },
+      "width": {
+        "type": "number",
+        "default": 6,
+        "minimum": 1,
+        "description": "Polyline width in screen pixels."
+      },
+      "trailLength": {
+        "type": "number",
+        "default": 0.32,
+        "minimum": 0.02,
+        "maximum": 0.95,
+        "description": "Trail length as a fraction of total route length."
+      },
+      "pulseCount": {
+        "type": "number",
+        "default": 3,
+        "minimum": 1,
+        "maximum": 12,
+        "description": "Number of animated flow pulses layered on the route."
+      },
+      "cornerRadius": {
+        "type": "number",
+        "default": 0,
+        "minimum": 0,
+        "maximum": 0.45,
+        "description": "Corner rounding strength for route bends. 0 keeps sharp corners; higher values insert smooth bend samples before rendering."
+      },
+      "glowPower": {
+        "type": "number",
+        "default": 0.22,
+        "minimum": 0,
+        "maximum": 1,
+        "description": "Glow strength passed to Cesium PolylineGlowMaterialProperty."
+      },
+      "taperPower": {
+        "type": "number",
+        "default": 0.72,
+        "minimum": 0,
+        "maximum": 1,
+        "description": "Polyline glow taper strength."
+      },
+      "clampToGround": {
+        "type": "boolean",
+        "default": true,
+        "description": "Clamp route polylines to terrain."
+      }
+    }
+  },
+  "methods": ["update", "show", "hide", "flyTo", "destroy", "isVisible", "isDestroyed", "getOptions"],
+  "examples": {
+    "minimal": {
+      "language": "ts",
+      "code": "import { createPolylineFlowEffect } from '@ztgk/geo-effect-kit'\n\nconst flow = createPolylineFlowEffect(viewer, {\n  positions: [\n    { longitude: 116.285, latitude: 39.87 },\n    { longitude: 116.394, latitude: 39.91 },\n    { longitude: 116.505, latitude: 39.9 },\n  ],\n  type: 'dispatch',\n  color: '#33f7ff',\n  speed: 1.4,\n  width: 7,\n  trailLength: 0.34,\n  pulseCount: 4,\n  cornerRadius: 0.18,\n})\n\nflow.flyTo()\nflow.destroy()\n"
+    },
+    "update": {
+      "language": "ts",
+      "code": "flow.update({\n  type: 'attack',\n  color: '#ff315a',\n  speed: 2.4,\n  width: 10,\n  trailLength: 0.42,\n  pulseCount: 6,\n  cornerRadius: 0.22,\n})\n"
+    }
+  },
+  "notes": [
+    "Pass an existing Cesium Viewer; the SDK does not create or own the viewer.",
+    "The base route uses Cesium PolylineGlowMaterialProperty, with moving trail polylines layered above it.",
+    "Changing positions, clampToGround, or cornerRadius rebuilds route entities; style changes update live.",
+    "Call destroy() during page cleanup to remove the data source and render loop."
+  ]
+}

@@ -1,0 +1,85 @@
+{
+  "id": "ripple-spread",
+  "name": "Ripple Spread",
+  "packageName": "@ztgk/geo-effect-kit",
+  "importName": "createRippleSpreadEffect",
+  "summary": "A framework-neutral Cesium water-like ripple expansion effect rendered with a circular ground primitive and GeoRippleSpreadMaterial shader.",
+  "useCases": [
+    "Incident impact range spreading outward from a point",
+    "Water ripple or signal diffusion visualization",
+    "Animated event emphasis on a Cesium map"
+  ],
+  "options": {
+    "properties": {
+      "center": {
+        "type": "object",
+        "required": true,
+        "description": "WGS84 center point.",
+        "properties": {
+          "longitude": { "type": "number" },
+          "latitude": { "type": "number" }
+        }
+      },
+      "radiusMeters": {
+        "type": "number",
+        "required": true,
+        "minimum": 1,
+        "description": "Maximum ripple radius in meters."
+      },
+      "type": {
+        "type": "string",
+        "default": "water",
+        "enum": ["water", "energy", "soft"],
+        "description": "Visual style. water renders clear blue water rings, energy renders bright pulse rings, and soft renders wider translucent ripples."
+      },
+      "color": {
+        "type": "string",
+        "default": "#62e8ff",
+        "description": "CSS color used by the ripple shader."
+      },
+      "ringCount": {
+        "type": "number",
+        "default": 4,
+        "minimum": 1,
+        "maximum": 12,
+        "description": "Number of expanding ripple rings rendered at the same time."
+      },
+      "durationMs": {
+        "type": "number",
+        "default": 3200,
+        "minimum": 1,
+        "description": "Milliseconds for one ripple ring to expand from center to edge. Lower values expand faster."
+      },
+      "opacity": {
+        "type": "number",
+        "default": 0.82,
+        "minimum": 0,
+        "maximum": 1,
+        "description": "Overall material opacity multiplier."
+      },
+      "showCenter": {
+        "type": "boolean",
+        "default": false,
+        "description": "Show a small center point entity."
+      }
+    }
+  },
+  "methods": ["update", "show", "hide", "flyTo", "destroy", "isVisible", "isDestroyed", "getOptions"],
+  "examples": {
+    "minimal": {
+      "language": "ts",
+      "code": "import { createRippleSpreadEffect } from '@ztgk/geo-effect-kit'\n\nconst ripple = createRippleSpreadEffect(viewer, {\n  center: { longitude: 116.391, latitude: 39.907 },\n  radiusMeters: 28000,\n  type: 'water',\n  color: '#62e8ff',\n  ringCount: 5,\n  durationMs: 2400,\n})\n\nripple.flyTo()\n\n// Later, when leaving the page or replacing the layer:\nripple.destroy()\n"
+    },
+    "update": {
+      "language": "ts",
+      "code": "ripple.update({\n  type: 'energy',\n  color: '#ff4fe2',\n  ringCount: 8,\n  durationMs: 1200,\n  showCenter: true,\n})\n"
+    }
+  },
+  "notes": [
+    "Pass an existing Cesium Viewer; the SDK does not create or own the viewer.",
+    "Call destroy() during page cleanup to remove the primitive, data source, and render loop.",
+    "Coordinates are WGS84 longitude/latitude and are converted with Cartesian3.fromDegrees.",
+    "Use ringCount to tune how many expanding rings are visible at once.",
+    "Use durationMs to tune expansion speed; lower values expand faster."
+  ]
+}

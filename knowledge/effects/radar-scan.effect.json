@@ -1,0 +1,83 @@
+{
+  "id": "radar-scan",
+  "name": "Radar Scan",
+  "packageName": "@ztgk/geo-effect-kit",
+  "importName": "createRadarScanEffect",
+  "summary": "A framework-neutral Cesium radar scan effect rendered with a circular ground primitive and GeoRadarScanMaterial shader.",
+  "useCases": [
+    "AI analysis or prediction progress scan on a map",
+    "Area monitoring or search radius visualization",
+    "Highlighted center point with animated sweep"
+  ],
+  "options": {
+    "properties": {
+      "center": {
+        "type": "object",
+        "required": true,
+        "description": "WGS84 center point.",
+        "properties": {
+          "longitude": { "type": "number" },
+          "latitude": { "type": "number" }
+        }
+      },
+      "radiusMeters": {
+        "type": "number",
+        "required": true,
+        "minimum": 1,
+        "description": "Scan radius in meters."
+      },
+      "color": {
+        "type": "string",
+        "default": "#36d6ff",
+        "description": "CSS color used by the scan shader."
+      },
+      "type": {
+        "type": "string",
+        "default": "classic",
+        "enum": ["classic", "sector", "pulse", "grid"],
+        "description": "Radar visual style. classic keeps the original rotating sweep, sector renders a wider scanning fan, pulse emphasizes a high-energy scan head, and grid adds a targeting grid sweep."
+      },
+      "scanDurationMs": {
+        "type": "number",
+        "default": 3600,
+        "minimum": 1,
+        "description": "Milliseconds for one full sweep rotation."
+      },
+      "opacity": {
+        "type": "number",
+        "default": 0.85,
+        "minimum": 0,
+        "maximum": 1,
+        "description": "Overall material opacity multiplier."
+      },
+      "rings": {
+        "type": "boolean",
+        "default": true,
+        "description": "Show concentric radar rings."
+      },
+      "showCenter": {
+        "type": "boolean",
+        "default": false,
+        "description": "Show a small center point entity."
+      }
+    }
+  },
+  "methods": ["update", "show", "hide", "flyTo", "destroy", "isVisible", "isDestroyed", "getOptions"],
+  "examples": {
+    "minimal": {
+      "language": "ts",
+      "code": "import { createRadarScanEffect } from '@ztgk/geo-effect-kit'\n\nconst radar = createRadarScanEffect(viewer, {\n  center: { longitude: 116.391, latitude: 39.907 },\n  radiusMeters: 22000,\n  type: 'classic',\n  color: '#36d6ff',\n  scanDurationMs: 3600,\n})\n\nradar.flyTo()\n\n// Later, when leaving the page or replacing the layer:\nradar.destroy()\n"
+    },
+    "update": {
+      "language": "ts",
+      "code": "radar.update({\n  type: 'pulse',\n  color: '#ff4fe2',\n  radiusMeters: 36000,\n  scanDurationMs: 1800,\n  showCenter: true,\n})\n"
+    }
+  },
+  "notes": [
+    "Pass an existing Cesium Viewer; the SDK does not create or own the viewer.",
+    "Call destroy() during page cleanup to remove the primitive, data source, and render loop.",
+    "Coordinates are WGS84 longitude/latitude and are converted with Cartesian3.fromDegrees.",
+    "Use type to choose classic, sector, pulse, or grid radar styling.",
+    "Use scanDurationMs to tune sweep speed; lower values rotate faster."
+  ]
+}
