@@ -3,9 +3,16 @@ import { createReadStream, existsSync, mkdirSync, readdirSync, statSync, copyFil
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+const basePath = process.env.VITE_BASE_PATH ?? (process.env.GITHUB_PAGES === 'true' ? '/cesiumDesign/' : '/')
+
+function joinBasePath(base: string, child: string) {
+  return `${base.replace(/\/$/, '')}/${child.replace(/^\//, '')}`
+}
+
 export default defineConfig({
+  base: basePath,
   define: {
-    CESIUM_BASE_URL: JSON.stringify('/cesium'),
+    CESIUM_BASE_URL: JSON.stringify(joinBasePath(basePath, 'cesium')),
   },
   optimizeDeps: {
     include: ['cesium'],
