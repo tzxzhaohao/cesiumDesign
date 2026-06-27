@@ -1,7 +1,7 @@
 {
   "id": "temperature-field",
   "name": "Temperature Field",
-  "packageName": "@ztgk/geo-effect-kit",
+  "packageName": "@ztgkzhaohao/geo-effect-kit",
   "importName": "createTemperatureFieldEffect",
   "summary": "A static Cesium shader surface for temperature or fire-risk fields, clipped by WGS84 polygons and compatible with FireHotspot fire prediction surfaces.",
   "useCases": [
@@ -85,11 +85,11 @@
   "examples": {
     "minimal": {
       "language": "ts",
-      "code": "import { createTemperatureFieldEffect } from '@ztgk/geo-effect-kit'\n\nconst field = createTemperatureFieldEffect(viewer, {\n  polygons: [\n    {\n      outer: [\n        [116.11, 39.76],\n        [116.62, 39.88],\n        [116.56, 40.06],\n        [116.18, 40.02],\n      ],\n      holes: [],\n    },\n  ],\n  seed: 9528,\n  opacity: 0.76,\n})\n\nfield.flyTo()\nfield.destroy()\n"
+      "code": "import { createTemperatureFieldEffect } from '@ztgkzhaohao/geo-effect-kit'\n\nconst field = createTemperatureFieldEffect(viewer, {\n  polygons: [\n    {\n      outer: [\n        [116.11, 39.76],\n        [116.62, 39.88],\n        [116.56, 40.06],\n        [116.18, 40.02],\n      ],\n      holes: [],\n    },\n  ],\n  seed: 9528,\n  opacity: 0.76,\n})\n\nfield.flyTo()\nfield.destroy()\n"
     },
     "fireHotspot": {
       "language": "ts",
-      "code": "import { createTemperatureFieldEffect } from '@ztgk/geo-effect-kit'\n\nconst field = createTemperatureFieldEffect(viewer, {\n  polygons: riskSurface.polygons,\n  seed: riskSurface.riskField.seed,\n  opacity: riskSurface.riskField.opacity,\n  stops: riskSurface.riskField.stops,\n  contourLines: true,\n  contourStrength: 0.18,\n  outline: true,\n})\n\n// Later, when prediction data changes:\nfield.update({\n  polygons: nextRiskSurface.polygons,\n  seed: nextRiskSurface.riskField.seed,\n  stops: nextRiskSurface.riskField.stops,\n  opacity: nextRiskSurface.riskField.opacity,\n})\n\nfield.destroy()\n"
+      "code": "import { createTemperatureFieldEffect } from '@ztgkzhaohao/geo-effect-kit'\n\nconst field = createTemperatureFieldEffect(viewer, {\n  polygons: riskSurface.polygons,\n  seed: riskSurface.riskField.seed,\n  opacity: riskSurface.riskField.opacity,\n  stops: riskSurface.riskField.stops,\n  contourLines: true,\n  contourStrength: 0.18,\n  outline: true,\n})\n\n// Later, when prediction data changes:\nfield.update({\n  polygons: nextRiskSurface.polygons,\n  seed: nextRiskSurface.riskField.seed,\n  stops: nextRiskSurface.riskField.stops,\n  opacity: nextRiskSurface.riskField.opacity,\n})\n\nfield.destroy()\n"
     }
   },
   "notes": [

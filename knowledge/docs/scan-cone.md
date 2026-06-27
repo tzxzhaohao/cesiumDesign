@@ -5,7 +5,7 @@
 ## 最小接入
 
 ```ts
-import { createScanConeEffect } from '@ztgk/geo-effect-kit'
+import { createScanConeEffect } from '@ztgkzhaohao/geo-effect-kit'
 
 const cone = createScanConeEffect(viewer, {
   center: { longitude: 116.391, latitude: 39.907 },

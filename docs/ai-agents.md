@@ -19,7 +19,7 @@
 安装或直接运行：
 
 ```bash
-npx @ztgk/geo-effect-kit-mcp
+npx @ztgkzhaohao/geo-effect-kit-mcp
 ```
 
 MCP server 提供以下工具：
@@ -36,7 +36,7 @@ MCP server 提供以下工具：
   "mcpServers": {
     "geo-effect-kit": {
       "command": "npx",
-      "args": ["@ztgk/geo-effect-kit-mcp"]
+      "args": ["@ztgkzhaohao/geo-effect-kit-mcp"]
     }
   }
 }
@@ -44,7 +44,7 @@ MCP server 提供以下工具：
 
 ## 智能体生成代码原则
 
-- 导入运行时代码时使用 `@ztgk/geo-effect-kit`。
+- 导入运行时代码时使用 `@ztgkzhaohao/geo-effect-kit`。
 - 查询效果知识时使用 MCP 或 `knowledge` 文件。
 - 不要从 demo UI 反推 API。
 - 宿主项目必须自己创建 Cesium `Viewer`。

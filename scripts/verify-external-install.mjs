@@ -17,7 +17,7 @@ function run(command, args, options = {}) {
 
 try {
   mkdirSync(packDir, { recursive: true })
-  run('pnpm', ['--filter', '@ztgk/geo-effect-kit', 'pack', '--pack-destination', packDir], { cwd: root })
+  run('pnpm', ['--filter', '@ztgkzhaohao/geo-effect-kit', 'pack', '--pack-destination', packDir], { cwd: root })
   const tarball = run('find', [packDir, '-name', '*.tgz']).trim().split(/\r?\n/)[0]
   if (!tarball) throw new Error('No SDK tarball produced')
 
@@ -31,7 +31,7 @@ try {
           build: 'vite build',
         },
         dependencies: {
-          '@ztgk/geo-effect-kit': tarball,
+          '@ztgkzhaohao/geo-effect-kit': tarball,
           cesium: '^1.136.0',
           vite: '^7.2.4',
           typescript: '^5.9.3',
@@ -77,7 +77,7 @@ try {
     path.join(tmp, 'src/main.ts'),
     `import 'cesium/Build/Cesium/Widgets/widgets.css'
 import type { Viewer } from 'cesium'
-import { createRadarScanEffect, createSceneWeatherEffect } from '@ztgk/geo-effect-kit'
+import { createRadarScanEffect, createSceneWeatherEffect } from '@ztgkzhaohao/geo-effect-kit'
 
 declare const viewer: Viewer
 

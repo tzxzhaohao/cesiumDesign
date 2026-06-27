@@ -11,8 +11,8 @@ pnpm test
 pnpm build
 pnpm pack:check
 pnpm smoke:external
-pnpm --filter @ztgk/geo-effect-kit publish --access public
-pnpm --filter @ztgk/geo-effect-kit-mcp publish --access public
+pnpm --filter @ztgkzhaohao/geo-effect-kit publish --access public
+pnpm --filter @ztgkzhaohao/geo-effect-kit-mcp publish --access public
 ```
 
 如果 `npm whoami` 提示未登录，先运行：

@@ -5,7 +5,7 @@
 ## 最小接入
 
 ```ts
-import { createShieldDomeEffect } from '@ztgk/geo-effect-kit'
+import { createShieldDomeEffect } from '@ztgkzhaohao/geo-effect-kit'
 
 const dome = createShieldDomeEffect(viewer, {
   center: { longitude: 116.391, latitude: 39.907 },

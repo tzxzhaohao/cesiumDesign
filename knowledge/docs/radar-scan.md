@@ -5,7 +5,7 @@
 ## 最小用法
 
 ```ts
-import { createRadarScanEffect } from '@ztgk/geo-effect-kit'
+import { createRadarScanEffect } from '@ztgkzhaohao/geo-effect-kit'
 
 const radar = createRadarScanEffect(viewer, {
   center: { longitude: 116.391, latitude: 39.907 },

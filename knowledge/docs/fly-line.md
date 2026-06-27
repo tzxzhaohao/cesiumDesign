@@ -5,7 +5,7 @@
 ## 最小用法
 
 ```ts
-import { createFlyLineEffect } from '@ztgk/geo-effect-kit'
+import { createFlyLineEffect } from '@ztgkzhaohao/geo-effect-kit'
 
 const flyLine = createFlyLineEffect(viewer, {
   lines: [

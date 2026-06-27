@@ -1,7 +1,7 @@
 {
   "id": "scene-weather",
   "name": "Scene Weather",
-  "packageName": "@ztgk/geo-effect-kit",
+  "packageName": "@ztgkzhaohao/geo-effect-kit",
   "importName": "createSceneWeatherEffect",
   "summary": "A full-scene Cesium post-process weather effect for rain, snow, fog, and lightning.",
   "useCases": [
@@ -46,7 +46,7 @@
   "examples": {
     "minimal": {
       "language": "ts",
-      "code": "import { createSceneWeatherEffect } from '@ztgk/geo-effect-kit'\n\nconst weather = createSceneWeatherEffect(viewer, {\n  type: 'rain',\n  intensity: 0.55,\n  speed: 1,\n  windDirection: 115,\n  color: '#d8f3ff',\n})\n\nweather.update({ type: 'fog', intensity: 0.42 })\nweather.destroy()\n"
+      "code": "import { createSceneWeatherEffect } from '@ztgkzhaohao/geo-effect-kit'\n\nconst weather = createSceneWeatherEffect(viewer, {\n  type: 'rain',\n  intensity: 0.55,\n  speed: 1,\n  windDirection: 115,\n  color: '#d8f3ff',\n})\n\nweather.update({ type: 'fog', intensity: 0.42 })\nweather.destroy()\n"
     }
   },
   "notes": [

@@ -7,7 +7,7 @@
 ## 最小用法
 
 ```ts
-import { createTemperatureFieldEffect } from '@ztgk/geo-effect-kit'
+import { createTemperatureFieldEffect } from '@ztgkzhaohao/geo-effect-kit'
 
 const field = createTemperatureFieldEffect(viewer, {
   polygons: [

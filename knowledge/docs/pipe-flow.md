@@ -5,7 +5,7 @@
 ## 最小接入
 
 ```ts
-import { createPipeFlowEffect } from '@ztgk/geo-effect-kit'
+import { createPipeFlowEffect } from '@ztgkzhaohao/geo-effect-kit'
 
 const pipe = createPipeFlowEffect(viewer, {
   positions: [

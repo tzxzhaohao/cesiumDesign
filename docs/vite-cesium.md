@@ -1,6 +1,6 @@
 # Vite 与 Cesium 静态资源
 
-Cesium 运行时需要访问 Workers、Assets、Widgets 和 ThirdParty 等静态资源。`@ztgk/geo-effect-kit` 不打包这些资源，宿主项目需要自己配置。
+Cesium 运行时需要访问 Workers、Assets、Widgets 和 ThirdParty 等静态资源。`@ztgkzhaohao/geo-effect-kit` 不打包这些资源，宿主项目需要自己配置。
 
 ## 最小 Vite 配置
 

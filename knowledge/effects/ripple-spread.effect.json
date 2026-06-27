@@ -1,7 +1,7 @@
 {
   "id": "ripple-spread",
   "name": "Ripple Spread",
-  "packageName": "@ztgk/geo-effect-kit",
+  "packageName": "@ztgkzhaohao/geo-effect-kit",
   "importName": "createRippleSpreadEffect",
   "summary": "A framework-neutral Cesium water-like ripple expansion effect rendered with a circular ground primitive and GeoRippleSpreadMaterial shader.",
   "useCases": [
@@ -68,7 +68,7 @@
   "examples": {
     "minimal": {
       "language": "ts",
-      "code": "import { createRippleSpreadEffect } from '@ztgk/geo-effect-kit'\n\nconst ripple = createRippleSpreadEffect(viewer, {\n  center: { longitude: 116.391, latitude: 39.907 },\n  radiusMeters: 28000,\n  type: 'water',\n  color: '#62e8ff',\n  ringCount: 5,\n  durationMs: 2400,\n})\n\nripple.flyTo()\n\n// Later, when leaving the page or replacing the layer:\nripple.destroy()\n"
+      "code": "import { createRippleSpreadEffect } from '@ztgkzhaohao/geo-effect-kit'\n\nconst ripple = createRippleSpreadEffect(viewer, {\n  center: { longitude: 116.391, latitude: 39.907 },\n  radiusMeters: 28000,\n  type: 'water',\n  color: '#62e8ff',\n  ringCount: 5,\n  durationMs: 2400,\n})\n\nripple.flyTo()\n\n// Later, when leaving the page or replacing the layer:\nripple.destroy()\n"
     },
     "update": {
       "language": "ts",

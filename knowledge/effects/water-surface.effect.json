@@ -1,7 +1,7 @@
 {
   "id": "water-surface",
   "name": "Water Surface",
-  "packageName": "@ztgk/geo-effect-kit",
+  "packageName": "@ztgkzhaohao/geo-effect-kit",
   "importName": "createWaterSurfaceEffect",
   "summary": "A Three.js-inspired Cesium polygon water shader with procedural normal distortion, Fresnel reflection, and refractive color blending.",
   "useCases": [
@@ -99,7 +99,7 @@
   "examples": {
     "minimal": {
       "language": "ts",
-      "code": "import { createWaterSurfaceEffect } from '@ztgk/geo-effect-kit'\n\nconst water = createWaterSurfaceEffect(viewer, {\n  polygon: [\n    { longitude: 116.332, latitude: 39.886 },\n    { longitude: 116.454, latitude: 39.884 },\n    { longitude: 116.491, latitude: 39.925 },\n    { longitude: 116.346, latitude: 39.966 },\n  ],\n  type: 'river',\n  color: '#3de7ff',\n  waveStrength: 0.48,\n  reflectionStrength: 0.36,\n  distortionScale: 18,\n  reflectivity: 0.58,\n  refractionStrength: 0.42,\n  fresnelPower: 4,\n  flowDirection: 90,\n})\n\nwater.flyTo()\nwater.destroy()\n"
+      "code": "import { createWaterSurfaceEffect } from '@ztgkzhaohao/geo-effect-kit'\n\nconst water = createWaterSurfaceEffect(viewer, {\n  polygon: [\n    { longitude: 116.332, latitude: 39.886 },\n    { longitude: 116.454, latitude: 39.884 },\n    { longitude: 116.491, latitude: 39.925 },\n    { longitude: 116.346, latitude: 39.966 },\n  ],\n  type: 'river',\n  color: '#3de7ff',\n  waveStrength: 0.48,\n  reflectionStrength: 0.36,\n  distortionScale: 18,\n  reflectivity: 0.58,\n  refractionStrength: 0.42,\n  fresnelPower: 4,\n  flowDirection: 90,\n})\n\nwater.flyTo()\nwater.destroy()\n"
     }
   },
   "notes": [

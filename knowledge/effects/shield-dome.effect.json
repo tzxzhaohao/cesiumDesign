@@ -1,7 +1,7 @@
 {
   "id": "shield-dome",
   "name": "Shield Dome",
-  "packageName": "@ztgk/geo-effect-kit",
+  "packageName": "@ztgkzhaohao/geo-effect-kit",
   "importName": "createShieldDomeEffect",
   "summary": "A grounded Cesium half-dome with grid lines, scan bands, energy pulses, and an optional glowing base ring.",
   "useCases": [
@@ -72,7 +72,7 @@
   "examples": {
     "minimal": {
       "language": "ts",
-      "code": "import { createShieldDomeEffect } from '@ztgk/geo-effect-kit'\n\nconst dome = createShieldDomeEffect(viewer, {\n  center: { longitude: 116.391, latitude: 39.907 },\n  radiusMeters: 12000,\n  type: 'hex',\n  color: '#57f7ff',\n  speed: 1,\n  opacity: 0.56,\n  gridDensity: 14,\n  pulseStrength: 0.72,\n})\n\n// Great as a GitHub homepage demo.\ndome.flyTo()\ndome.destroy()\n"
+      "code": "import { createShieldDomeEffect } from '@ztgkzhaohao/geo-effect-kit'\n\nconst dome = createShieldDomeEffect(viewer, {\n  center: { longitude: 116.391, latitude: 39.907 },\n  radiusMeters: 12000,\n  type: 'hex',\n  color: '#57f7ff',\n  speed: 1,\n  opacity: 0.56,\n  gridDensity: 14,\n  pulseStrength: 0.72,\n})\n\n// Great as a GitHub homepage demo.\ndome.flyTo()\ndome.destroy()\n"
     },
     "update": {
       "language": "ts",

@@ -25,7 +25,7 @@ test('listEffects reads the radar scan manifest', async () => {
   assert.equal(effects[10].id, 'shield-dome')
   assert.equal(effects[11].id, 'temperature-field')
   assert.equal(effects[12].id, 'fire-billboard')
-  assert.equal(effects[0].packageName, '@ztgk/geo-effect-kit')
+  assert.equal(effects[0].packageName, '@ztgkzhaohao/geo-effect-kit')
 })
 
 test('getEffectSchema returns agent-readable parameter schema', async () => {

@@ -5,7 +5,7 @@
 ## 最小用法
 
 ```ts
-import { createRippleSpreadEffect } from '@ztgk/geo-effect-kit'
+import { createRippleSpreadEffect } from '@ztgkzhaohao/geo-effect-kit'
 
 const ripple = createRippleSpreadEffect(viewer, {
   center: { longitude: 116.391, latitude: 39.907 },

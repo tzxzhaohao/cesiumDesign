@@ -5,7 +5,7 @@
 ## 最小接入
 
 ```ts
-import { createLightWallEffect } from '@ztgk/geo-effect-kit'
+import { createLightWallEffect } from '@ztgkzhaohao/geo-effect-kit'
 
 const wall = createLightWallEffect(viewer, {
   positions: [

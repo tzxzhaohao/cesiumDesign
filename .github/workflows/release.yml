@@ -51,24 +51,24 @@ jobs:
 
       - name: Publish core dry run
         if: ${{ inputs.dry_run && (inputs.package == 'core' || inputs.package == 'both') }}
-        run: pnpm --filter @ztgk/geo-effect-kit publish --access public --no-git-checks --dry-run
+        run: pnpm --filter @ztgkzhaohao/geo-effect-kit publish --access public --no-git-checks --dry-run
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish MCP dry run
         if: ${{ inputs.dry_run && (inputs.package == 'mcp' || inputs.package == 'both') }}
-        run: pnpm --filter @ztgk/geo-effect-kit-mcp publish --access public --no-git-checks --dry-run
+        run: pnpm --filter @ztgkzhaohao/geo-effect-kit-mcp publish --access public --no-git-checks --dry-run
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish core
         if: ${{ !inputs.dry_run && (inputs.package == 'core' || inputs.package == 'both') }}
-        run: pnpm --filter @ztgk/geo-effect-kit publish --access public --no-git-checks
+        run: pnpm --filter @ztgkzhaohao/geo-effect-kit publish --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish MCP
         if: ${{ !inputs.dry_run && (inputs.package == 'mcp' || inputs.package == 'both') }}
-        run: pnpm --filter @ztgk/geo-effect-kit-mcp publish --access public --no-git-checks
+        run: pnpm --filter @ztgkzhaohao/geo-effect-kit-mcp publish --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

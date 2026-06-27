@@ -16,7 +16,7 @@ body:
       label: Reproduction
       description: Provide a minimal reproduction or steps to reproduce.
       placeholder: |
-        1. Install @ztgk/geo-effect-kit
+        1. Install @ztgkzhaohao/geo-effect-kit
         2. Create a Cesium Viewer
         3. Call createRadarScanEffect(viewer, { center: { longitude: 116.391, latitude: 39.907 }, radiusMeters: 22000 })
     validations:
@@ -26,7 +26,7 @@ body:
     attributes:
       label: Versions
       description: geo-effect-kit, Cesium, browser, Node.js, package manager.
-      placeholder: "@ztgk/geo-effect-kit 0.1.0, Cesium 1.136.0, Chrome 126"
+      placeholder: "@ztgkzhaohao/geo-effect-kit 0.1.0, Cesium 1.136.0, Chrome 126"
     validations:
       required: true
   - type: textarea

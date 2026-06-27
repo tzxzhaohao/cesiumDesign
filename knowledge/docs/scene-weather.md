@@ -5,7 +5,7 @@
 ## 最小接入
 
 ```ts
-import { createSceneWeatherEffect } from '@ztgk/geo-effect-kit'
+import { createSceneWeatherEffect } from '@ztgkzhaohao/geo-effect-kit'
 
 const weather = createSceneWeatherEffect(viewer, {
   type: 'rain',

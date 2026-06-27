@@ -1,7 +1,7 @@
 {
   "id": "scan-cone",
   "name": "Scan Cone",
-  "packageName": "@ztgk/geo-effect-kit",
+  "packageName": "@ztgkzhaohao/geo-effect-kit",
   "importName": "createScanConeEffect",
   "summary": "A rotating volumetric Cesium cone for searchlights, radar beams, camera coverage, drones, and alarm ranges.",
   "useCases": [
@@ -76,7 +76,7 @@
   "examples": {
     "minimal": {
       "language": "ts",
-      "code": "import { createScanConeEffect } from '@ztgk/geo-effect-kit'\n\nconst cone = createScanConeEffect(viewer, {\n  center: { longitude: 116.391, latitude: 39.907 },\n  type: 'searchlight',\n  color: '#7cf7ff',\n  radiusMeters: 2200,\n  lengthMeters: 6200,\n  speed: 1.2,\n  aperture: 38,\n})\n\ncone.flyTo()\ncone.destroy()\n"
+      "code": "import { createScanConeEffect } from '@ztgkzhaohao/geo-effect-kit'\n\nconst cone = createScanConeEffect(viewer, {\n  center: { longitude: 116.391, latitude: 39.907 },\n  type: 'searchlight',\n  color: '#7cf7ff',\n  radiusMeters: 2200,\n  lengthMeters: 6200,\n  speed: 1.2,\n  aperture: 38,\n})\n\ncone.flyTo()\ncone.destroy()\n"
     },
     "update": {
       "language": "ts",

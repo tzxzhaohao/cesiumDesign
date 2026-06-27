@@ -1,11 +1,11 @@
 # 快速开始
 
-`@ztgk/geo-effect-kit` 是一个面向 Cesium 的动效 SDK。它不创建 `Viewer`，只接收宿主项目已经创建好的 Cesium `Viewer`。
+`@ztgkzhaohao/geo-effect-kit` 是一个面向 Cesium 的动效 SDK。它不创建 `Viewer`，只接收宿主项目已经创建好的 Cesium `Viewer`。
 
 ## 安装
 
 ```bash
-pnpm add @ztgk/geo-effect-kit cesium
+pnpm add @ztgkzhaohao/geo-effect-kit cesium
 ```
 
 ## 基础示例
@@ -13,7 +13,7 @@ pnpm add @ztgk/geo-effect-kit cesium
 ```ts
 import 'cesium/Build/Cesium/Widgets/widgets.css'
 import { Viewer } from 'cesium'
-import { createRippleSpreadEffect } from '@ztgk/geo-effect-kit'
+import { createRippleSpreadEffect } from '@ztgkzhaohao/geo-effect-kit'
 
 const viewer = new Viewer('cesiumContainer')
 

@@ -5,7 +5,7 @@
 ## 最小接入
 
 ```ts
-import { createWaterSurfaceEffect } from '@ztgk/geo-effect-kit'
+import { createWaterSurfaceEffect } from '@ztgkzhaohao/geo-effect-kit'
 
 const water = createWaterSurfaceEffect(viewer, {
   polygon: [

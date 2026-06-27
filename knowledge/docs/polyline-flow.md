@@ -5,7 +5,7 @@
 ## 最小接入
 
 ```ts
-import { createPolylineFlowEffect } from '@ztgk/geo-effect-kit'
+import { createPolylineFlowEffect } from '@ztgkzhaohao/geo-effect-kit'
 
 const flow = createPolylineFlowEffect(viewer, {
   positions: [

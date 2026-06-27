@@ -1,7 +1,7 @@
 {
   "id": "fly-line",
   "name": "Fly Line",
-  "packageName": "@ztgk/geo-effect-kit",
+  "packageName": "@ztgkzhaohao/geo-effect-kit",
   "importName": "createFlyLineEffect",
   "summary": "A raised Cesium fly-line animation for single arcs, hub-spoke convergence, and bidirectional links.",
   "useCases": [
@@ -85,7 +85,7 @@
   "examples": {
     "minimal": {
       "language": "ts",
-      "code": "import { createFlyLineEffect } from '@ztgk/geo-effect-kit'\n\nconst flyLine = createFlyLineEffect(viewer, {\n  lines: [\n    {\n      from: { longitude: 116.285, latitude: 39.87 },\n      to: { longitude: 116.391, latitude: 39.907 },\n    },\n    {\n      from: { longitude: 116.505, latitude: 39.9 },\n      to: { longitude: 116.391, latitude: 39.907 },\n    },\n  ],\n  mode: 'bidirectional',\n  color: '#5ee8ff',\n  speed: 1.2,\n  width: 5,\n  arcHeight: 42000,\n  trailLength: 0.28,\n  pulseCount: 3,\n})\n\nflyLine.flyTo()\nflyLine.destroy()\n"
+      "code": "import { createFlyLineEffect } from '@ztgkzhaohao/geo-effect-kit'\n\nconst flyLine = createFlyLineEffect(viewer, {\n  lines: [\n    {\n      from: { longitude: 116.285, latitude: 39.87 },\n      to: { longitude: 116.391, latitude: 39.907 },\n    },\n    {\n      from: { longitude: 116.505, latitude: 39.9 },\n      to: { longitude: 116.391, latitude: 39.907 },\n    },\n  ],\n  mode: 'bidirectional',\n  color: '#5ee8ff',\n  speed: 1.2,\n  width: 5,\n  arcHeight: 42000,\n  trailLength: 0.28,\n  pulseCount: 3,\n})\n\nflyLine.flyTo()\nflyLine.destroy()\n"
     },
     "update": {
       "language": "ts",

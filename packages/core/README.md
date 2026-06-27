@@ -1,11 +1,11 @@
-# @ztgk/geo-effect-kit
+# @ztgkzhaohao/geo-effect-kit
 
 Framework-neutral Cesium effects SDK.
 
 ## Install
 
 ```bash
-pnpm add @ztgk/geo-effect-kit cesium
+pnpm add @ztgkzhaohao/geo-effect-kit cesium
 ```
 
 Cesium is a peer dependency. The host project owns Cesium static assets, `CESIUM_BASE_URL`, widgets CSS, and Viewer initialization.
@@ -15,7 +15,7 @@ Cesium is a peer dependency. The host project owns Cesium static assets, `CESIUM
 ```ts
 import 'cesium/Build/Cesium/Widgets/widgets.css'
 import { Viewer } from 'cesium'
-import { createRadarScanEffect } from '@ztgk/geo-effect-kit'
+import { createRadarScanEffect } from '@ztgkzhaohao/geo-effect-kit'
 
 const viewer = new Viewer('cesiumContainer')
 
@@ -33,7 +33,7 @@ radar.destroy()
 
 - Repository: https://github.com/tzxzhaohao/cesiumDesign
 - Demo: https://tzxzhaohao.github.io/cesiumDesign/
-- AI/MCP package: `@ztgk/geo-effect-kit-mcp`
+- AI/MCP package: `@ztgkzhaohao/geo-effect-kit-mcp`
 
 ## License
 

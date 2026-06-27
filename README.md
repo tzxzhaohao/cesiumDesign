@@ -16,7 +16,7 @@ Framework-neutral Cesium effects for WebGIS dashboards, emergency command system
 ## Install
 
 ```bash
-pnpm add @ztgk/geo-effect-kit cesium
+pnpm add @ztgkzhaohao/geo-effect-kit cesium
 ```
 
 Cesium is a peer dependency. The host project owns Cesium versioning, static assets, `CESIUM_BASE_URL`, and Viewer initialization.
@@ -26,7 +26,7 @@ Cesium is a peer dependency. The host project owns Cesium versioning, static ass
 ```ts
 import 'cesium/Build/Cesium/Widgets/widgets.css'
 import { Viewer } from 'cesium'
-import { createRadarScanEffect } from '@ztgk/geo-effect-kit'
+import { createRadarScanEffect } from '@ztgkzhaohao/geo-effect-kit'
 
 const viewer = new Viewer('cesiumContainer')
 
@@ -96,12 +96,12 @@ AI agents should prefer the structured knowledge files instead of reverse-engine
 
 - Use `knowledge/effects/*.effect.json` for effect IDs, imports, options, methods, examples, and notes.
 - Use `knowledge/docs/*.md` for effect-specific integration guidance.
-- Use `@ztgk/geo-effect-kit-mcp` when the agent supports MCP tools.
+- Use `@ztgkzhaohao/geo-effect-kit-mcp` when the agent supports MCP tools.
 
 Start the MCP server:
 
 ```bash
-npx @ztgk/geo-effect-kit-mcp
+npx @ztgkzhaohao/geo-effect-kit-mcp
 ```
 
 ## Development

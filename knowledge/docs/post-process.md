@@ -5,7 +5,7 @@
 ## 最小接入
 
 ```ts
-import { createPostProcessEffect } from '@ztgk/geo-effect-kit'
+import { createPostProcessEffect } from '@ztgkzhaohao/geo-effect-kit'
 
 const postProcess = createPostProcessEffect(viewer, {
   type: 'night-vision',

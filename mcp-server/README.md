@@ -1,11 +1,11 @@
-# @ztgk/geo-effect-kit-mcp
+# @ztgkzhaohao/geo-effect-kit-mcp
 
 MCP server for querying `geo-effect-kit` Cesium effect manifests, schemas, usage examples, and integration notes.
 
 ## Usage
 
 ```bash
-npx @ztgk/geo-effect-kit-mcp
+npx @ztgkzhaohao/geo-effect-kit-mcp
 ```
 
 ## Tools
@@ -22,7 +22,7 @@ npx @ztgk/geo-effect-kit-mcp
   "mcpServers": {
     "geo-effect-kit": {
       "command": "npx",
-      "args": ["@ztgk/geo-effect-kit-mcp"]
+      "args": ["@ztgkzhaohao/geo-effect-kit-mcp"]
     }
   }
 }
@@ -30,4 +30,4 @@ npx @ztgk/geo-effect-kit-mcp
 
 ## Relationship to the SDK
 
-Runtime projects install `@ztgk/geo-effect-kit`. AI agents and MCP clients use `@ztgk/geo-effect-kit-mcp` to discover effects and generate integration code.
+Runtime projects install `@ztgkzhaohao/geo-effect-kit`. AI agents and MCP clients use `@ztgkzhaohao/geo-effect-kit-mcp` to discover effects and generate integration code.

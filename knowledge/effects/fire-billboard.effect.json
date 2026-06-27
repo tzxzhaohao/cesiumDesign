@@ -1,7 +1,7 @@
 {
   "id": "fire-billboard",
   "name": "Fire Billboard",
-  "packageName": "@ztgk/geo-effect-kit",
+  "packageName": "@ztgkzhaohao/geo-effect-kit",
   "importName": "createFireBillboardEffect",
   "summary": "A Cesium billboard fire-point overlay that accepts user-provided WGS84 longitude/latitude points and GIF assets, then decodes GIFs into animated billboard frames when the browser supports it.",
   "useCases": [
@@ -63,7 +63,7 @@
   "examples": {
     "minimal": {
       "language": "ts",
-      "code": "import { createFireBillboardEffect } from '@ztgk/geo-effect-kit'\n\nconst fireBillboard = createFireBillboardEffect(viewer, {\n  points: [\n    { longitude: 116.322, latitude: 39.968, gif: '/fire-red-billboard.gif' },\n    { longitude: 116.372, latitude: 39.932, gif: '/fire-orange-billboard.gif' },\n    { longitude: 116.431, latitude: 39.974, gif: 'https://upload.wikimedia.org/wikipedia/commons/c/c1/Torche.gif' },\n    { longitude: 116.486, latitude: 39.908, gif: '/fire-green-billboard.gif' },\n  ],\n  scale: 1,\n  frameIntervalMs: 72,\n})\n\nfireBillboard.flyTo()\nfireBillboard.destroy()\n"
+      "code": "import { createFireBillboardEffect } from '@ztgkzhaohao/geo-effect-kit'\n\nconst fireBillboard = createFireBillboardEffect(viewer, {\n  points: [\n    { longitude: 116.322, latitude: 39.968, gif: '/fire-red-billboard.gif' },\n    { longitude: 116.372, latitude: 39.932, gif: '/fire-orange-billboard.gif' },\n    { longitude: 116.431, latitude: 39.974, gif: 'https://upload.wikimedia.org/wikipedia/commons/c/c1/Torche.gif' },\n    { longitude: 116.486, latitude: 39.908, gif: '/fire-green-billboard.gif' },\n  ],\n  scale: 1,\n  frameIntervalMs: 72,\n})\n\nfireBillboard.flyTo()\nfireBillboard.destroy()\n"
     },
     "update": {
       "language": "ts",

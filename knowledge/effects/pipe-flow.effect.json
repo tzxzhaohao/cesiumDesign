@@ -1,7 +1,7 @@
 {
   "id": "pipe-flow",
   "name": "Pipe Flow",
-  "packageName": "@ztgk/geo-effect-kit",
+  "packageName": "@ztgkzhaohao/geo-effect-kit",
   "importName": "createPipeFlowEffect",
   "summary": "A transparent Cesium water-pipe route effect with shell glow, internal flow, pressure waves, bubbles, and rounded bends.",
   "useCases": [
@@ -73,7 +73,7 @@
   "examples": {
     "minimal": {
       "language": "ts",
-      "code": "import { createPipeFlowEffect } from '@ztgk/geo-effect-kit'\n\nconst pipe = createPipeFlowEffect(viewer, {\n  positions: [\n    { longitude: 116.285, latitude: 39.87 },\n    { longitude: 116.335, latitude: 39.92 },\n    { longitude: 116.394, latitude: 39.91 },\n    { longitude: 116.452, latitude: 39.95 },\n    { longitude: 116.505, latitude: 39.9 },\n  ],\n  color: '#45dfff',\n  speed: 1.35,\n  width: 14,\n  pipeOpacity: 0.34,\n  waterOpacity: 0.88,\n  cornerRadius: 0.22,\n  bubbleDensity: 8,\n})\n\npipe.flyTo()\npipe.destroy()\n"
+      "code": "import { createPipeFlowEffect } from '@ztgkzhaohao/geo-effect-kit'\n\nconst pipe = createPipeFlowEffect(viewer, {\n  positions: [\n    { longitude: 116.285, latitude: 39.87 },\n    { longitude: 116.335, latitude: 39.92 },\n    { longitude: 116.394, latitude: 39.91 },\n    { longitude: 116.452, latitude: 39.95 },\n    { longitude: 116.505, latitude: 39.9 },\n  ],\n  color: '#45dfff',\n  speed: 1.35,\n  width: 14,\n  pipeOpacity: 0.34,\n  waterOpacity: 0.88,\n  cornerRadius: 0.22,\n  bubbleDensity: 8,\n})\n\npipe.flyTo()\npipe.destroy()\n"
     },
     "update": {
       "language": "ts",

@@ -14,7 +14,7 @@ importers:
 
   apps/demo:
     dependencies:
-      '@ztgk/geo-effect-kit':
+      '@ztgkzhaohao/geo-effect-kit':
         specifier: workspace:*
         version: link:../../packages/core
       cesium:

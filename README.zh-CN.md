@@ -16,7 +16,7 @@
 ## 安装
 
 ```bash
-pnpm add @ztgk/geo-effect-kit cesium
+pnpm add @ztgkzhaohao/geo-effect-kit cesium
 ```
 
 Cesium 是 peer dependency，由宿主项目负责版本、静态资源、`CESIUM_BASE_URL` 和 `Viewer` 初始化。
@@ -26,7 +26,7 @@ Cesium 是 peer dependency，由宿主项目负责版本、静态资源、`CESIU
 ```ts
 import 'cesium/Build/Cesium/Widgets/widgets.css'
 import { Viewer } from 'cesium'
-import { createRadarScanEffect } from '@ztgk/geo-effect-kit'
+import { createRadarScanEffect } from '@ztgkzhaohao/geo-effect-kit'
 
 const viewer = new Viewer('cesiumContainer')
 
@@ -76,12 +76,12 @@ https://tzxzhaohao.github.io/cesiumDesign/
 
 - `knowledge/effects/*.effect.json`：效果 ID、导入名、参数、方法、示例和注意事项。
 - `knowledge/docs/*.md`：每个效果的详细说明和迁移建议。
-- `@ztgk/geo-effect-kit-mcp`：支持 MCP 的智能体可直接查询效果信息。
+- `@ztgkzhaohao/geo-effect-kit-mcp`：支持 MCP 的智能体可直接查询效果信息。
 
 启动 MCP server：
 
 ```bash
-npx @ztgk/geo-effect-kit-mcp
+npx @ztgkzhaohao/geo-effect-kit-mcp
 ```
 
 ## 开发

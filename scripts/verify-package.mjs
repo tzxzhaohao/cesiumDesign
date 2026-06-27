@@ -7,7 +7,7 @@ const root = process.cwd()
 const tmp = mkdtempSync(path.join(tmpdir(), 'geo-effect-kit-pack-'))
 
 try {
-  const output = execFileSync('pnpm', ['--filter', '@ztgk/geo-effect-kit', 'pack', '--pack-destination', tmp], {
+  const output = execFileSync('pnpm', ['--filter', '@ztgkzhaohao/geo-effect-kit', 'pack', '--pack-destination', tmp], {
     cwd: root,
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],

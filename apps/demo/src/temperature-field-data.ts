@@ -1,4 +1,4 @@
-import type { TemperatureFieldPolygon, TemperatureFieldSample } from '@ztgk/geo-effect-kit'
+import type { TemperatureFieldPolygon, TemperatureFieldSample } from '@ztgkzhaohao/geo-effect-kit'
 
 export type TemperatureSampleType = 'low' | 'normal' | 'warm' | 'hot' | 'critical'
 

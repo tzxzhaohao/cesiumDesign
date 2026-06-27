@@ -54,7 +54,7 @@ import {
   type TemperatureFieldSample,
   type WaterSurfaceEffectInstance,
   type WaterSurfaceType,
-} from '@ztgk/geo-effect-kit'
+} from '@ztgkzhaohao/geo-effect-kit'
 import {
   createRandomTemperatureSamples,
   fallbackBeijingTemperatureFieldPolygons,
@@ -1367,7 +1367,7 @@ function indentCode(code: string, spaces: number): string {
 }
 
 function getRadarCode(): string {
-  return `import { createRadarScanEffect } from '@ztgk/geo-effect-kit'
+  return `import { createRadarScanEffect } from '@ztgkzhaohao/geo-effect-kit'
 
 const radar = createRadarScanEffect(viewer, {
   center: { longitude: ${center.longitude}, latitude: ${center.latitude} },
@@ -1384,7 +1384,7 @@ radar.destroy()`
 }
 
 function getRippleCode(): string {
-  return `import { createRippleSpreadEffect } from '@ztgk/geo-effect-kit'
+  return `import { createRippleSpreadEffect } from '@ztgkzhaohao/geo-effect-kit'
 
 const ripple = createRippleSpreadEffect(viewer, {
   center: { longitude: ${center.longitude}, latitude: ${center.latitude} },
@@ -1401,7 +1401,7 @@ ripple.destroy()`
 }
 
 function getPolylineCode(): string {
-  return `import { createPolylineFlowEffect } from '@ztgk/geo-effect-kit'
+  return `import { createPolylineFlowEffect } from '@ztgkzhaohao/geo-effect-kit'
 
 const flow = createPolylineFlowEffect(viewer, {
   positions: ${formatPositions(routePositions)},
@@ -1419,7 +1419,7 @@ flow.destroy()`
 }
 
 function getFlyLineCode(): string {
-  return `import { createFlyLineEffect } from '@ztgk/geo-effect-kit'
+  return `import { createFlyLineEffect } from '@ztgkzhaohao/geo-effect-kit'
 
 const flyLine = createFlyLineEffect(viewer, {
   lines: ${formatFlyLines(provinceCapitalFlyLineRoutes)},
@@ -1437,7 +1437,7 @@ flyLine.destroy()`
 }
 
 function getPipeFlowCode(): string {
-  return `import { createPipeFlowEffect } from '@ztgk/geo-effect-kit'
+  return `import { createPipeFlowEffect } from '@ztgkzhaohao/geo-effect-kit'
 
 const pipe = createPipeFlowEffect(viewer, {
   positions: ${formatPositions(routePositions)},
@@ -1455,7 +1455,7 @@ pipe.destroy()`
 }
 
 function getSceneWeatherCode(): string {
-  return `import { createSceneWeatherEffect } from '@ztgk/geo-effect-kit'
+  return `import { createSceneWeatherEffect } from '@ztgkzhaohao/geo-effect-kit'
 
 const weather = createSceneWeatherEffect(viewer, {
   type: '${elements.weatherType.value}',
@@ -1469,7 +1469,7 @@ weather.destroy()`
 }
 
 function getPostProcessCode(): string {
-  return `import { createPostProcessEffect } from '@ztgk/geo-effect-kit'
+  return `import { createPostProcessEffect } from '@ztgkzhaohao/geo-effect-kit'
 
 const postProcess = createPostProcessEffect(viewer, {
   type: '${elements.postProcessType.value}',
@@ -1483,7 +1483,7 @@ postProcess.destroy()`
 }
 
 function getWaterSurfaceCode(): string {
-  return `import { createWaterSurfaceEffect } from '@ztgk/geo-effect-kit'
+  return `import { createWaterSurfaceEffect } from '@ztgkzhaohao/geo-effect-kit'
 
 const waterSurfaceSegments = ${formatWaterSurfaceSegments(waterSurfaceSegments)}
 
@@ -1511,7 +1511,7 @@ waterSurfaces.forEach((water) => water.destroy())`
 }
 
 function getLightWallCode(): string {
-  return `import { createLightWallEffect } from '@ztgk/geo-effect-kit'
+  return `import { createLightWallEffect } from '@ztgkzhaohao/geo-effect-kit'
 
 const wall = createLightWallEffect(viewer, {
   positions: ${formatPositions(wallPositions)},
@@ -1530,7 +1530,7 @@ wall.destroy()`
 }
 
 function getScanConeCode(): string {
-  return `import { createScanConeEffect } from '@ztgk/geo-effect-kit'
+  return `import { createScanConeEffect } from '@ztgkzhaohao/geo-effect-kit'
 
 const cone = createScanConeEffect(viewer, {
   center: { longitude: ${center.longitude}, latitude: ${center.latitude} },
@@ -1548,7 +1548,7 @@ cone.destroy()`
 }
 
 function getShieldDomeCode(): string {
-  return `import { createShieldDomeEffect } from '@ztgk/geo-effect-kit'
+  return `import { createShieldDomeEffect } from '@ztgkzhaohao/geo-effect-kit'
 
 const dome = createShieldDomeEffect(viewer, {
   center: { longitude: ${center.longitude}, latitude: ${center.latitude} },
@@ -1566,7 +1566,7 @@ dome.destroy()`
 }
 
 function getTemperatureFieldCode(): string {
-  return `import { createTemperatureFieldEffect } from '@ztgk/geo-effect-kit'
+  return `import { createTemperatureFieldEffect } from '@ztgkzhaohao/geo-effect-kit'
 
 const field = createTemperatureFieldEffect(viewer, {
   polygons: riskSurface.polygons,
@@ -1583,7 +1583,7 @@ field.destroy()`
 }
 
 function getFireBillboardCode(): string {
-  return `import { createFireBillboardEffect } from '@ztgk/geo-effect-kit'
+  return `import { createFireBillboardEffect } from '@ztgkzhaohao/geo-effect-kit'
 
 const fireBillboard = createFireBillboardEffect(viewer, {
   points: ${formatFireBillboardPoints(fireBillboardPoints)},

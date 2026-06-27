@@ -7,7 +7,7 @@ Vue 页面中建议在 `onMounted` 创建 `Viewer` 和效果实例，在 `onBefo
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import 'cesium/Build/Cesium/Widgets/widgets.css'
 import { Viewer } from 'cesium'
-import { createRadarScanEffect, type RadarScanEffectInstance } from '@ztgk/geo-effect-kit'
+import { createRadarScanEffect, type RadarScanEffectInstance } from '@ztgkzhaohao/geo-effect-kit'
 
 const containerRef = ref<HTMLDivElement | null>(null)
 

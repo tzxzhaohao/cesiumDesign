@@ -6,7 +6,7 @@ This project follows semantic versioning after the public npm release. During `0
 
 ## 0.1.0 - 2026-06-27
 
-- Initial public release preparation for `@ztgk/geo-effect-kit`.
+- Initial public release preparation for `@ztgkzhaohao/geo-effect-kit`.
 - Added reusable Cesium effects including radar scan, ripple spread, fly line, pipe flow, water surface, light wall, scan cone, shield dome, temperature field, scene weather, post-process effects, polyline flow, and GIF fire billboards.
 - Added machine-readable effect manifests and documentation for AI agents.
 - Added MCP server package preparation for querying effect schemas and usage examples.

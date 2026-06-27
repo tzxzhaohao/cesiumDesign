@@ -1,7 +1,7 @@
 {
   "id": "light-wall",
   "name": "Light Wall",
-  "packageName": "@ztgk/geo-effect-kit",
+  "packageName": "@ztgkzhaohao/geo-effect-kit",
   "importName": "createLightWallEffect",
   "summary": "A transparent dynamic Cesium boundary wall with flowing texture, scan lines, and breathing highlights.",
   "useCases": [
@@ -70,7 +70,7 @@
   "examples": {
     "minimal": {
       "language": "ts",
-      "code": "import { createLightWallEffect } from '@ztgk/geo-effect-kit'\n\nconst wall = createLightWallEffect(viewer, {\n  positions: [\n    { longitude: 116.337, latitude: 39.879 },\n    { longitude: 116.448, latitude: 39.882 },\n    { longitude: 116.468, latitude: 39.962 },\n  ],\n  type: 'security',\n  color: '#27f5ff',\n  height: 3600,\n  speed: 1.1,\n  opacity: 0.72,\n})\n\nwall.flyTo()\nwall.destroy()\n"
+      "code": "import { createLightWallEffect } from '@ztgkzhaohao/geo-effect-kit'\n\nconst wall = createLightWallEffect(viewer, {\n  positions: [\n    { longitude: 116.337, latitude: 39.879 },\n    { longitude: 116.448, latitude: 39.882 },\n    { longitude: 116.468, latitude: 39.962 },\n  ],\n  type: 'security',\n  color: '#27f5ff',\n  height: 3600,\n  speed: 1.1,\n  opacity: 0.72,\n})\n\nwall.flyTo()\nwall.destroy()\n"
     },
     "update": {
       "language": "ts",

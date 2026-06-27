@@ -1,7 +1,7 @@
 {
   "id": "polyline-flow",
   "name": "Polyline Flow",
-  "packageName": "@ztgk/geo-effect-kit",
+  "packageName": "@ztgkzhaohao/geo-effect-kit",
   "importName": "createPolylineFlowEffect",
   "summary": "A Cesium route flow-light effect for command dispatch routes, migration lines, attack paths, and high-speed data tracks.",
   "useCases": [
@@ -86,7 +86,7 @@
   "examples": {
     "minimal": {
       "language": "ts",
-      "code": "import { createPolylineFlowEffect } from '@ztgk/geo-effect-kit'\n\nconst flow = createPolylineFlowEffect(viewer, {\n  positions: [\n    { longitude: 116.285, latitude: 39.87 },\n    { longitude: 116.394, latitude: 39.91 },\n    { longitude: 116.505, latitude: 39.9 },\n  ],\n  type: 'dispatch',\n  color: '#33f7ff',\n  speed: 1.4,\n  width: 7,\n  trailLength: 0.34,\n  pulseCount: 4,\n  cornerRadius: 0.18,\n})\n\nflow.flyTo()\nflow.destroy()\n"
+      "code": "import { createPolylineFlowEffect } from '@ztgkzhaohao/geo-effect-kit'\n\nconst flow = createPolylineFlowEffect(viewer, {\n  positions: [\n    { longitude: 116.285, latitude: 39.87 },\n    { longitude: 116.394, latitude: 39.91 },\n    { longitude: 116.505, latitude: 39.9 },\n  ],\n  type: 'dispatch',\n  color: '#33f7ff',\n  speed: 1.4,\n  width: 7,\n  trailLength: 0.34,\n  pulseCount: 4,\n  cornerRadius: 0.18,\n})\n\nflow.flyTo()\nflow.destroy()\n"
     },
     "update": {
       "language": "ts",

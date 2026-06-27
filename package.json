@@ -5,9 +5,9 @@
   "type": "module",
   "packageManager": "pnpm@11.7.0",
   "scripts": {
-    "build": "pnpm --filter @ztgk/geo-effect-kit build && pnpm --filter @ztgk/geo-effect-kit-mcp build && pnpm --filter geo-effect-kit-demo build",
-    "test": "pnpm --filter @ztgk/geo-effect-kit test && pnpm --filter @ztgk/geo-effect-kit-mcp test && pnpm --filter geo-effect-kit-demo test",
-    "typecheck": "pnpm --filter @ztgk/geo-effect-kit typecheck && pnpm --filter @ztgk/geo-effect-kit-mcp typecheck && pnpm --filter geo-effect-kit-demo typecheck",
+    "build": "pnpm --filter @ztgkzhaohao/geo-effect-kit build && pnpm --filter @ztgkzhaohao/geo-effect-kit-mcp build && pnpm --filter geo-effect-kit-demo build",
+    "test": "pnpm --filter @ztgkzhaohao/geo-effect-kit test && pnpm --filter @ztgkzhaohao/geo-effect-kit-mcp test && pnpm --filter geo-effect-kit-demo test",
+    "typecheck": "pnpm --filter @ztgkzhaohao/geo-effect-kit typecheck && pnpm --filter @ztgkzhaohao/geo-effect-kit-mcp typecheck && pnpm --filter geo-effect-kit-demo typecheck",
     "pack:check": "node scripts/verify-package.mjs",
     "smoke:external": "node scripts/verify-external-install.mjs"
   },
