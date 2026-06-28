@@ -4,6 +4,7 @@ import assert from 'node:assert/strict'
 import {
   buildScanConeMaterialSource,
   createScanConeEffect,
+  createScanConeMaterialProperty,
   normalizeScanConeOptions,
   shouldRebuildScanCone,
 } from '../dist/index.js'
@@ -57,6 +58,8 @@ test('buildScanConeMaterialSource includes rotating cone style branches', () => 
   const source = buildScanConeMaterialSource()
 
   assert.match(source, /GeoScanConeMaterial/)
+  assert.match(source, /timeSeconds/)
+  assert.match(source, /max\(timeSeconds,\s*czm_frameNumber \* 0\.016667\)/)
   assert.match(source, /coneType/)
   assert.match(source, /sweepBand/)
   assert.match(source, /radialGrid/)
@@ -73,6 +76,24 @@ test('normalizeScanConeOptions accepts each scan cone type', () => {
   assert.equal(normalizeScanConeOptions({ center, type: 'camera' }).type, 'camera')
   assert.equal(normalizeScanConeOptions({ center, type: 'drone' }).type, 'drone')
   assert.equal(normalizeScanConeOptions({ center, type: 'alarm' }).type, 'alarm')
+})
+
+test('createScanConeMaterialProperty exposes dynamic material uniforms for moving cone entities', () => {
+  const material = createScanConeMaterialProperty({
+    center,
+    type: 'alarm',
+    color: '#ff315a',
+    speed: 2.4,
+    opacity: 0.5,
+    aperture: 42,
+  })
+
+  assert.equal(material.uniforms.color.toCssHexString(), '#ff315a')
+  assert.equal(material.uniforms.coneType, 5)
+  assert.equal(material.uniforms.speed, 2.4)
+  assert.equal(material.uniforms.timeSeconds, -1)
+  assert.equal(material.uniforms.opacity, 0.5)
+  assert.equal(material.uniforms.aperture, 42)
 })
 
 test('shouldRebuildScanCone only rebuilds entities for cone geometry changes', () => {
@@ -94,7 +115,7 @@ test('shouldRebuildScanCone only rebuilds entities for cone geometry changes', (
 
   assert.equal(shouldRebuildScanCone(previous, styleOnly), false)
   assert.equal(shouldRebuildScanCone(previous, radiusChanged), true)
-  assert.equal(shouldRebuildScanCone(previous, centerChanged), true)
+  assert.equal(shouldRebuildScanCone(previous, centerChanged), false)
 })
 
 test('ScanConeEffect updates material and orientation without rebuilding geometry', () => {
@@ -126,6 +147,10 @@ test('ScanConeEffect updates material and orientation without rebuilding geometr
   assert.equal(cone.cylinder.material.uniforms.color.toCssHexString(), '#ff315a')
   assert.equal(cone.cylinder.material.uniforms.coneType, 5)
   assert.equal(cone.cylinder.material.uniforms.speed, 2.6)
+
+  effect.update({ center: { longitude: 116.43, latitude: 39.94 } })
+  assert.equal(dataSource.entities.values[0], cone)
+  assert.equal(dataSource.entities.removeAllCount, 0)
 
   effect.update({ radiusMeters: 2400 })
   assert.equal(dataSource.entities.removeAllCount, 1)

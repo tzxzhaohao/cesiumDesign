@@ -1,6 +1,6 @@
 {
   "name": "@ztgkzhaohao/geo-effect-kit-mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "MCP server for geo-effect-kit Cesium effect manifests and integration examples.",
   "license": "MIT",

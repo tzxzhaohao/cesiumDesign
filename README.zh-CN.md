@@ -8,7 +8,7 @@
 
 - 接收已有 Cesium `Viewer`，不接管宿主项目的地图初始化。
 - TypeScript API，React、Vue、原生项目都可以使用。
-- 内置雷达扫描、水波扩散、飞线、水管流动、水面、光墙、锥形扫描、护盾、温度场、GIF 火点、天气、后处理和路线流光等效果。
+- 内置雷达扫描、水波扩散、飞线、水管流动、水面 Flow Type、光墙、锥形扫描、护盾、温度场、GIF 火点、天气、后处理和路线流光等效果。
 - 统一生命周期：`update`、`show`、`hide`、`flyTo`、`destroy`。
 - 提供机器可读的效果 manifest，方便 AI 智能体读取。
 - 提供可选 MCP server，用于查询效果 schema 和集成示例。

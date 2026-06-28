@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 
 import {
   buildRadarScanMaterialSource,
+  createRadarScanMaterialProperty,
   createRadarScanEffect,
   normalizeRadarScanOptions,
   shouldRebuildRadarScan,
@@ -169,6 +170,25 @@ test('RadarScanEffect applies non-geometric material updates without rebuilding 
   assert.equal(primitive.appearance.material.uniforms.effectType, undefined)
   assert.equal(primitive.appearance.material.uniforms.ringCount, undefined)
   assert.equal(primitive.appearance.material.uniforms.rippleDurationMs, undefined)
+})
+
+test('createRadarScanMaterialProperty exposes animated radar uniforms for dynamic entities', () => {
+  const material = createRadarScanMaterialProperty({
+    center: { longitude: 116, latitude: 39 },
+    radiusMeters: 10_000,
+    type: 'sector',
+    color: '#7cf7ff',
+    opacity: 0.62,
+    rings: true,
+    scanDurationMs: 2600,
+  })
+
+  assert.equal(material.getType(), 'GeoRadarScanMaterial')
+  assert.equal(material.uniforms.color.toCssHexString(), '#7cf7ff')
+  assert.equal(material.uniforms.opacity, 0.62)
+  assert.equal(material.uniforms.ringsEnabled, 1)
+  assert.equal(material.uniforms.radarType, 2)
+  assert.equal(material.uniforms.scanDurationMs, 2600)
 })
 
 function createMockViewer() {

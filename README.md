@@ -52,7 +52,7 @@ radar.destroy()
 | Polyline flow | `createPolylineFlowEffect` | Dispatch routes, data links, migration paths |
 | Fly line | `createFlyLineEffect` | High-altitude arcs, hub-spoke links, bidirectional routes |
 | Pipe flow | `createPipeFlowEffect` | Water pipes and pressure flow |
-| Water surface | `createWaterSurfaceEffect` | Rivers, lakes, and flood surfaces |
+| Water surface | `createWaterSurfaceEffect` | Rivers, lakes, flood surfaces, and directional Flow Type water |
 | Light wall | `createLightWallEffect` | Security boundaries and protected areas |
 | Scan cone | `createScanConeEffect` | Searchlights, sensors, cameras, drones |
 | Shield dome | `createShieldDomeEffect` | Protective domes and highlighted regions |

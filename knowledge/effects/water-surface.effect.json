@@ -3,7 +3,7 @@
   "name": "Water Surface",
   "packageName": "@ztgkzhaohao/geo-effect-kit",
   "importName": "createWaterSurfaceEffect",
-  "summary": "A Three.js-inspired Cesium polygon water shader with procedural normal distortion, Fresnel reflection, and refractive color blending.",
+  "summary": "A Three.js-inspired Cesium polygon water shader with procedural normal distortion, Fresnel reflection, refractive color blending, and a yunzhou-onemap-style flow type.",
   "useCases": [
     "River and lake surfaces with flowing wave motion",
     "Flood and water-level emergency visualization",
@@ -19,8 +19,8 @@
       "type": {
         "type": "string",
         "default": "river",
-        "enum": ["river", "lake", "flood"],
-        "description": "Water material style."
+        "enum": ["river", "lake", "flood", "flow"],
+        "description": "Water material style. flow adds a stronger directional river-current style inspired by yunzhou-onemap WaterPrimitive."
       },
       "color": {
         "type": "string",
@@ -99,13 +99,13 @@
   "examples": {
     "minimal": {
       "language": "ts",
-      "code": "import { createWaterSurfaceEffect } from '@ztgkzhaohao/geo-effect-kit'\n\nconst water = createWaterSurfaceEffect(viewer, {\n  polygon: [\n    { longitude: 116.332, latitude: 39.886 },\n    { longitude: 116.454, latitude: 39.884 },\n    { longitude: 116.491, latitude: 39.925 },\n    { longitude: 116.346, latitude: 39.966 },\n  ],\n  type: 'river',\n  color: '#3de7ff',\n  waveStrength: 0.48,\n  reflectionStrength: 0.36,\n  distortionScale: 18,\n  reflectivity: 0.58,\n  refractionStrength: 0.42,\n  fresnelPower: 4,\n  flowDirection: 90,\n})\n\nwater.flyTo()\nwater.destroy()\n"
+  "code": "import { createWaterSurfaceEffect } from '@ztgkzhaohao/geo-effect-kit'\n\nconst water = createWaterSurfaceEffect(viewer, {\n  polygon: [\n    { longitude: 113.53286993642162, latitude: 40.09427040664276, height: 1100.5107316527904 },\n    { longitude: 113.53289090505918, latitude: 40.094102733213965, height: 1100.115053866143 },\n    { longitude: 113.53320229759383, latitude: 40.09427348256092, height: 1103.1671287483625 },\n    { longitude: 113.53286993642162, latitude: 40.09427040664276, height: 1100.5107316527904 },\n  ],\n  type: 'flow',\n  color: '#00777f',\n  waveStrength: 0.32,\n  reflectionStrength: 0.3,\n  distortionScale: 3.7,\n  reflectivity: 0.3,\n  refractionStrength: 0.34,\n  fresnelPower: 3.2,\n  flowDirection: 186,\n})\n\nwater.flyTo()\nwater.destroy()\n"
     }
   },
   "notes": [
     "Pass an existing Cesium Viewer; the SDK does not create or own the viewer.",
     "Coordinates are WGS84 longitude/latitude and are converted with Cartesian3.fromDegrees.",
-    "The water polygon uses GeoWaterSurfaceMaterial with czm_frameNumber animation, procedural normal distortion, Fresnel reflection, and refractive color blending.",
+    "The water polygon uses GeoWaterSurfaceMaterial with czm_frameNumber animation, procedural normal distortion, Fresnel reflection, refractive color blending, and a flow branch inspired by yunzhou-onemap WaterPrimitive.",
     "Call destroy() during page cleanup to remove the data source and render loop."
   ]
 }

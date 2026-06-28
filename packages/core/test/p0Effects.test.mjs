@@ -178,6 +178,11 @@ test('normalizeWaterSurfaceOptions fills water material defaults and detects geo
   assert.equal(clamped.reflectivity, 1)
   assert.equal(clamped.refractionStrength, 0)
   assert.equal(clamped.fresnelPower, 12)
+
+  assert.equal(normalizeWaterSurfaceOptions({ ...previous, type: 'river' }).type, 'river')
+  assert.equal(normalizeWaterSurfaceOptions({ ...previous, type: 'lake' }).type, 'lake')
+  assert.equal(normalizeWaterSurfaceOptions({ ...previous, type: 'flood' }).type, 'flood')
+  assert.equal(normalizeWaterSurfaceOptions({ ...previous, type: 'flow' }).type, 'flow')
 })
 
 test('buildWaterSurfaceMaterialSource exposes Three.js-style reflection and refraction shader code', () => {
@@ -199,6 +204,18 @@ test('buildWaterSurfaceMaterialSource exposes Three.js-style reflection and refr
   assert.match(source, /riverEnabled/)
   assert.match(source, /lakeEnabled/)
   assert.match(source, /floodEnabled/)
+  assert.match(source, /float floodEnabled = step\(2\.5, waterType\);/)
+  assert.match(source, /vec3 waterColor = riverTint \* riverEnabled \+ lakeTint \* lakeEnabled \+ floodTint \* floodEnabled;/)
+  assert.match(source, /vec3 deepColor = mix\(waterColor, vec3\(0\.015, 0\.11, 0\.18\), 0\.46\);/)
+  assert.match(source, /wave = max\(wave, floodPulse \* floodEnabled\);/)
+  assert.match(
+    source,
+    /material\.emission = reflectionColor \* \(0\.14 \+ fresnel \* 0\.42\) \+ waterColor \* \(\(riverFlow \* 0\.08 \+ waveB \* 0\.06\) \* riverEnabled \+ floodPulse \* floodEnabled \* 0\.22\);/,
+  )
+  assert.match(source, /flowEnabled/)
+  assert.match(source, /yunzhouFlow/)
+  assert.match(source, /WaterPrimitive/)
+  assert.doesNotMatch(source, /flowStreak/)
   assert.doesNotMatch(source, /fract\(dot\(moving,\s*flow\)/)
   assert.doesNotMatch(source, /riverFlow \* riverEnabled/)
 })
@@ -241,6 +258,21 @@ test('WaterSurfaceEffect renders an animated polygon material and updates unifor
   assert.equal(entity?.polygon.material.uniforms.refractionStrength, 0.55)
   assert.equal(entity?.polygon.material.uniforms.fresnelPower, 6)
   assert.equal(entity?.polygon.material.uniforms.flowDirection, 180)
+
+  effect.update({
+    type: 'flow',
+    color: '#00777f',
+    waveStrength: 0.32,
+    reflectionStrength: 0.3,
+    distortionScale: 3.7,
+    reflectivity: 0.3,
+    refractionStrength: 0.34,
+    fresnelPower: 3.2,
+  })
+  assert.equal(entity?.polygon.material.uniforms.waterType, 4)
+  assert.equal(entity?.polygon.material.uniforms.color.toCssHexString(), '#00777f')
+  assert.equal(entity?.polygon.material.uniforms.distortionScale, 3.7)
+  assert.equal(entity?.polygon.material.uniforms.reflectivity, 0.3)
 
   effect.hide()
   assert.equal(effect.isVisible(), false)

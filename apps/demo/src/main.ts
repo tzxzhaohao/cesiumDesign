@@ -3,15 +3,23 @@ import './styles.css'
 
 import {
   BoundingSphere,
+  CallbackPositionProperty,
+  CallbackProperty,
   Cartesian2,
   Cartesian3,
+  Math as CesiumMath,
   CesiumTerrainProvider,
   Color,
+  ConstantProperty,
   CustomDataSource,
+  HeadingPitchRoll,
   HeadingPitchRange,
+  HeightReference,
   ImageryLayer,
   Ion,
   PointGraphics,
+  PolylineGlowMaterialProperty,
+  Transforms,
   Viewer,
   WebMapTileServiceImageryProvider,
 } from 'cesium'
@@ -22,8 +30,10 @@ import {
   createPostProcessEffect,
   createPolylineFlowEffect,
   createRadarScanEffect,
+  createRadarScanMaterialProperty,
   createRippleSpreadEffect,
   createScanConeEffect,
+  createScanConeMaterialProperty,
   createSceneWeatherEffect,
   createShieldDomeEffect,
   createTemperatureFieldEffect,
@@ -74,6 +84,7 @@ type EffectId =
   | 'water-surface'
   | 'light-wall'
   | 'scan-cone'
+  | 'route-scan'
   | 'shield-dome'
   | 'temperature-field'
   | 'fire-billboard'
@@ -90,18 +101,63 @@ type ActiveEffect =
   | WaterSurfaceEffectInstance
   | LightWallEffectInstance
   | ScanConeEffectInstance
+  | RouteScanEffectInstance
   | ShieldDomeEffectInstance
   | TemperatureFieldEffectInstance
   | FireBillboardEffectInstance
 type TemperatureFieldSource = 'fallback' | 'tianditu'
-type GeoPosition = { longitude: number; latitude: number }
-type YongdingRiverWaterSegment = {
+type GeoPosition = { longitude: number; latitude: number; height?: number }
+type RouteScanMode = 'radar-scan' | 'scan-cone'
+type RouteScanOptions = {
+  scanMode: RouteScanMode
+  color: string
+  coneType: ScanConeType
+  radiusMeters: number
+  lengthMeters: number
+  speed: number
+  scanDurationMs: number
+  opacity: number
+  aperture: number
+  heading: number
+  rings: boolean
+  showOrigin: boolean
+  showRoute: boolean
+}
+type RouteScanEffectInstance = {
+  update(options: Partial<RouteScanOptions>): void
+  show(): void
+  hide(): void
+  flyTo(): void
+  destroy(): void
+  isVisible(): boolean
+  isDestroyed(): boolean
+}
+type RouteScannerOptions = {
+  center?: GeoPosition
+  color?: string
+  type?: ScanConeType
+  radiusMeters?: number
+  lengthMeters?: number
+  speed?: number
+  scanDurationMs?: number
+  opacity?: number
+  aperture?: number
+  heading?: number
+  rings?: boolean
+  showOrigin?: boolean
+}
+type RouteScannerInstance = {
+  update(options: RouteScannerOptions): void
+  show(): void
+  hide(): void
+  destroy(): void
+}
+type YunzhouRiverWaterSegment = {
   name: string
   source: string
-  centerline: GeoPosition[]
-  channelWidthMeters: number
   height: number
   flowDirection: number
+  polygon: GeoPosition[]
 }
 type ControlId =
   | 'colorField'
@@ -156,6 +212,14 @@ const tiandituToken = getTiandituToken()
 const tiandituAdministrativeUrl = 'https://api.tianditu.gov.cn/v2/administrative'
 const fireHotspotTerrainUrl = 'http://39.105.60.121/mapdata/terrain'
 const beijingTiandituRegionCode = '156110000'
+const radarTypeOptions = `
+                <option value="classic">classic</option>
+                <option value="sector">sector</option>
+                <option value="pulse">pulse</option>
+                <option value="grid">grid</option>`
+const routeScanModeOptions = `
+                <option value="radar-scan">radar-scan</option>
+                <option value="scan-cone">scan-cone</option>`
 const center = { longitude: 116.391, latitude: 39.907 }
 const routePositions = [
   { longitude: 116.285, latitude: 39.87 },
@@ -164,6 +228,16 @@ const routePositions = [
   { longitude: 116.452, latitude: 39.95 },
   { longitude: 116.505, latitude: 39.9 },
 ]
+const routeScanPositions = [
+  { longitude: 116.312, latitude: 39.896, height: 260 },
+  { longitude: 116.356, latitude: 39.935, height: 300 },
+  { longitude: 116.416, latitude: 39.926, height: 280 },
+  { longitude: 116.476, latitude: 39.956, height: 340 },
+  { longitude: 116.524, latitude: 39.914, height: 260 },
+  { longitude: 116.458, latitude: 39.874, height: 240 },
+  { longitude: 116.312, latitude: 39.896, height: 260 },
+]
+const routeScanSegments = getRouteScanSegments()
 const beijingCapital = { longitude: 116.4074, latitude: 39.9042 }
 const provinceCapitalFlyLineTargets = [
   { name: '天津', longitude: 117.2, latitude: 39.1333 },
@@ -211,61 +285,96 @@ const wallPositions = [
   { longitude: 116.36, latitude: 39.988 },
   { longitude: 116.307, latitude: 39.93 },
 ]
-const yongdingRiverWaterSegments = [
+const yunzhouOnemapRiverWaterSegments = [
   {
-    name: 'guanting-outlet',
-    source: 'OSM way 243770192 + imagery-traced river width',
-    centerline: [
-      { longitude: 115.5471, latitude: 40.3384 },
-      { longitude: 115.5492, latitude: 40.3251 },
-      { longitude: 115.5604, latitude: 40.3169 },
+    name: 'yunzhou-water-primitive-river',
+    source: 'yunzhou-onemap src/common/water-surface.ts WaterPrimitive coordinates',
+    height: 0,
+    flowDirection: 186,
+    polygon: [
+      { longitude: 113.53286993642162, latitude: 40.09427040664276, height: 1100.5107316527904 },
+      { longitude: 113.53289090505918, latitude: 40.094102733213965, height: 1100.115053866143 },
+      { longitude: 113.53289442776061, latitude: 40.093927108718276, height: 1099.9788521571654 },
+      { longitude: 113.53290343232129, latitude: 40.09371987681498, height: 1099.4888357831903 },
+      { longitude: 113.53289718470559, latitude: 40.09346906247862, height: 1099.0926934576164 },
+      { longitude: 113.5329058230199, latitude: 40.09307529633515, height: 1098.225148921251 },
+      { longitude: 113.53290197997399, latitude: 40.09275271804777, height: 1097.511018038253 },
+      { longitude: 113.53293113856343, latitude: 40.092292870277575, height: 1097.249771690926 },
+      { longitude: 113.53293892801412, latitude: 40.09215363729866, height: 1097.0756889183785 },
+      { longitude: 113.53306556733088, latitude: 40.09165507530884, height: 1095.0757328055556 },
+      { longitude: 113.53326905643709, latitude: 40.091041173045674, height: 1092.5479454019662 },
+      { longitude: 113.53328469336188, latitude: 40.0908325331976, height: 1090.9965397144672 },
+      { longitude: 113.53336269179044, latitude: 40.09042310407048, height: 1090.8564774497386 },
+      { longitude: 113.5334907701789, latitude: 40.08991729377534, height: 1091.5897710730426 },
+      { longitude: 113.53354959568216, latitude: 40.08969721111766, height: 1091.3449021241397 },
+      { longitude: 113.53354933013644, latitude: 40.08965632197489, height: 1091.3590030728467 },
+      { longitude: 113.53353718468996, latitude: 40.0896156252889, height: 1091.4678620346785 },
+      { longitude: 113.53353401447589, latitude: 40.08957312132648, height: 1091.0690587126505 },
+      { longitude: 113.53354973536133, latitude: 40.089514865216714, height: 1091.3324171708732 },
+      { longitude: 113.53356115404887, latitude: 40.089486283826815, height: 1091.5343440497181 },
+      { longitude: 113.53357220948568, latitude: 40.08943738682835, height: 1090.5582779074684 },
+      { longitude: 113.533608101941, latitude: 40.089359882120576, height: 1091.269552219659 },
+      { longitude: 113.533644694624, latitude: 40.08926406719644, height: 1091.0063684606662 },
+      { longitude: 113.53365942661185, latitude: 40.089243359690904, height: 1091.233579523951 },
+      { longitude: 113.53370560619015, latitude: 40.08918498809615, height: 1091.201904180053 },
+      { longitude: 113.5337542613172, latitude: 40.089069764704774, height: 1091.1997264419833 },
+      { longitude: 113.53379613484663, latitude: 40.088963829706586, height: 1091.1605879882743 },
+      { longitude: 113.53384142560147, latitude: 40.088862845360964, height: 1090.8227209588767 },
+      { longitude: 113.53399097555766, latitude: 40.08859616148204, height: 1090.2552528011522 },
+      { longitude: 113.53413770242926, latitude: 40.08834070898705, height: 1089.6915877390863 },
+      { longitude: 113.5343186456868, latitude: 40.08808168861801, height: 1088.9124934711722 },
+      { longitude: 113.53451123266466, latitude: 40.087856469685214, height: 1088.123740641736 },
+      { longitude: 113.53480006364451, latitude: 40.08751671365609, height: 1087.4605890650387 },
+      { longitude: 113.53497315118886, latitude: 40.08732769268672, height: 1086.7817413353691 },
+      { longitude: 113.53522310683987, latitude: 40.08705612920683, height: 1085.9608304331769 },
+      { longitude: 113.53533753564257, latitude: 40.086926089923026, height: 1085.7802548604723 },
+      { longitude: 113.535518694159, latitude: 40.08670334588195, height: 1085.2871292630653 },
+      { longitude: 113.53561461947392, latitude: 40.08658414127715, height: 1085.0359092397591 },
+      { longitude: 113.5359144319117, latitude: 40.08674727960947, height: 1084.758001255787 },
+      { longitude: 113.53545219304536, latitude: 40.08727379621074, height: 1085.8208014860718 },
+      { longitude: 113.53506155988983, latitude: 40.08770171486153, height: 1086.9640326321119 },
+      { longitude: 113.53491977759816, latitude: 40.08786163879205, height: 1087.2521572120645 },
+      { longitude: 113.53481284166055, latitude: 40.08797799522049, height: 1087.844779298105 },
+      { longitude: 113.5346189069537, latitude: 40.08822873687617, height: 1088.7695751450278 },
+      { longitude: 113.53428049513252, latitude: 40.088767595829445, height: 1090.1804750989515 },
+      { longitude: 113.53416112665695, latitude: 40.089003095642816, height: 1091.2850383555813 },
+      { longitude: 113.5340535615597, latitude: 40.0892693556393, height: 1091.5573977694073 },
+      { longitude: 113.53403587727935, latitude: 40.0893530559901, height: 1090.5622805403877 },
+      { longitude: 113.53400731506338, latitude: 40.08942771674443, height: 1091.3620711466629 },
+      { longitude: 113.53399594889753, latitude: 40.08945363979459, height: 1091.3567701271797 },
+      { longitude: 113.53398888147882, latitude: 40.089472717897884, height: 1091.143531224933 },
+      { longitude: 113.53397394827776, latitude: 40.0895096333215, height: 1091.062216609859 },
+      { longitude: 113.53396009744773, latitude: 40.089536591024206, height: 1091.099926207659 },
+      { longitude: 113.53394542705006, latitude: 40.08957197496921, height: 1091.372566728451 },
+      { longitude: 113.53392539566966, latitude: 40.0896182321135, height: 1091.0793392315736 },
+      { longitude: 113.53386702077289, latitude: 40.08974562250957, height: 1091.7155948126715 },
+      { longitude: 113.5337983903262, latitude: 40.089902740104804, height: 1092.0086617548823 },
+      { longitude: 113.53381107721322, latitude: 40.09000763661166, height: 1092.0830255671094 },
+      { longitude: 113.53381999590891, latitude: 40.09007898399568, height: 1091.5508884063256 },
+      { longitude: 113.53385679561201, latitude: 40.09016374282424, height: 1092.404291162033 },
+      { longitude: 113.5339341629186, latitude: 40.09024705755017, height: 1093.308599905396 },
+      { longitude: 113.5340198511995, latitude: 40.090341491692, height: 1093.0661579211119 },
+      { longitude: 113.53418793481389, latitude: 40.09044554948529, height: 1094.4207285696546 },
+      { longitude: 113.53433954446547, latitude: 40.090554008417755, height: 1093.9303926152097 },
+      { longitude: 113.5344189625771, latitude: 40.09066112262796, height: 1093.1708393366428 },
+      { longitude: 113.53438570594895, latitude: 40.09073848788335, height: 1093.5004843838385 },
+      { longitude: 113.5342599825462, latitude: 40.09088647427918, height: 1094.2304664647436 },
+      { longitude: 113.5340328844839, latitude: 40.09119352297274, height: 1094.7221329888803 },
+      { longitude: 113.53392132179822, latitude: 40.09136165365167, height: 1095.798584193168 },
+      { longitude: 113.533818996472, latitude: 40.09153689494577, height: 1097.555947213628 },
+      { longitude: 113.53371236717429, latitude: 40.09173155000936, height: 1096.3379722989048 },
+      { longitude: 113.5334767119673, latitude: 40.09194745233111, height: 1097.3683026605895 },
+      { longitude: 113.53334051146557, latitude: 40.09214978919861, height: 1097.233658890729 },
+      { longitude: 113.53325371890669, latitude: 40.09236654385485, height: 1097.8978185353646 },
+      { longitude: 113.53321940072598, latitude: 40.09260607920882, height: 1096.8824888769275 },
+      { longitude: 113.53322616716845, latitude: 40.092819288712874, height: 1097.3442371648655 },
+      { longitude: 113.5332396208091, latitude: 40.0933308470054, height: 1099.4871578908342 },
+      { longitude: 113.53320229759383, latitude: 40.09427348256092, height: 1103.1671287483625 },
+      { longitude: 113.53286993642162, latitude: 40.09427040664276, height: 1100.5107316527904 },
     ],
-    channelWidthMeters: 190,
-    height: 482,
-    flowDirection: 192,
   },
-  {
-    name: 'sanbao-bend',
-    source: 'OSM way 243770192 + imagery-traced river width',
-    centerline: [
-      { longitude: 115.5604, latitude: 40.3169 },
-      { longitude: 115.5739, latitude: 40.3182 },
-      { longitude: 115.5857, latitude: 40.3174 },
-      { longitude: 115.5962, latitude: 40.3145 },
-    ],
-    channelWidthMeters: 220,
-    height: 479,
-    flowDirection: 118,
-  },
-  {
-    name: 'downstream-channel',
-    source: 'OSM way 243770192 + imagery-traced river width',
-    centerline: [
-      { longitude: 115.5962, latitude: 40.3145 },
-      { longitude: 115.6127, latitude: 40.3034 },
-      { longitude: 115.6254, latitude: 40.2994 },
-      { longitude: 115.615, latitude: 40.2883 },
-    ],
-    channelWidthMeters: 210,
-    height: 478,
-    flowDirection: 162,
-  },
-  {
-    name: 'kangzhuang-reach',
-    source: 'OSM way 243770192 + imagery-traced river width',
-    centerline: [
-      { longitude: 115.615, latitude: 40.2883 },
-      { longitude: 115.6059, latitude: 40.2728 },
-    ],
-    channelWidthMeters: 170,
-    height: 475,
-    flowDirection: 206,
-  },
-] satisfies YongdingRiverWaterSegment[]
-const waterSurfaceSegments = yongdingRiverWaterSegments.map((segment) => ({
-  ...segment,
-  polygon: buildRiverChannelPolygon(segment.centerline, segment.channelWidthMeters),
-}))
+] satisfies YunzhouRiverWaterSegment[]
+const waterSurfaceSegments = yunzhouOnemapRiverWaterSegments
 const fireBillboardGifs = {
   localRed: '/fire-red-billboard.gif',
   localOrange: '/fire-orange-billboard.gif',
@@ -391,6 +500,8 @@ const elements = {
   center: getInput('center'),
   breathing: getInput('breathing'),
   outline: getInput('outline'),
+  outlineLabel: getElement('outlineLabel'),
+  radarTypeLabel: getElement('radarTypeLabel'),
   origin: getInput('origin'),
   domeRing: getInput('domeRing'),
   usageToolbar: getElement('usageToolbar'),
@@ -571,6 +682,16 @@ const effectCopy: Record<EffectId, { title: string; description: string; notes: 
       'Use createScanConeEffect(viewer, options) when a point needs a 3D coverage or detection volume.',
       'type switches searchlight, radar, camera, drone, and alarm cone materials.',
       'heading sets the starting direction while speed drives continuous rotation.',
+    ],
+  },
+  'route-scan': {
+    title: 'Route Scan',
+    description: 'A moving scanner that runs either radar-scan or scan-cone along a preset route with optional route visibility.',
+    notes: [
+      'Use the Scan effect selector to choose radar-scan or scan-cone. Only the selected scanner is rendered at one time.',
+      'Speed controls route movement. Sweep duration applies to radar-scan, while length, heading, aperture, and origin apply to scan-cone.',
+      'Show top outline is reused as the route visibility toggle for this moving scanner.',
+      'Switching scan effects destroys the old scanner and creates the newly selected one at the current route sample.',
     ],
   },
   'shield-dome': {
@@ -820,6 +941,10 @@ function createEffect(effectId: EffectId): ActiveEffect {
     })
   }
 
+  if (effectId === 'route-scan') {
+    return createRouteScanEffect()
+  }
+
   if (effectId === 'temperature-field') {
     return createTemperatureFieldEffect(viewer, {
       polygons: beijingTemperatureFieldPolygons,
@@ -872,6 +997,424 @@ function createWaterSurfaceEffects(): WaterSurfaceEffectInstance[] {
       outline: false,
     }),
   )
+}
+
+function createRouteScanEffect(): RouteScanEffectInstance {
+  const initialOptions: RouteScanOptions = {
+    scanMode: getRouteScanMode(),
+    color: elements.color.value,
+    coneType: elements.coneType.value as ScanConeType,
+    radiusMeters: numberValue(elements.radius),
+    lengthMeters: numberValue(elements.length),
+    speed: numberValue(elements.speed),
+    scanDurationMs: numberValue(elements.scanDuration),
+    opacity: numberValue(elements.opacity),
+    aperture: numberValue(elements.aperture),
+    heading: numberValue(elements.heading),
+    rings: elements.rings.checked,
+    showOrigin: elements.origin.checked,
+    showRoute: elements.outline.checked,
+  }
+  const routeScanDataSource = new CustomDataSource('geo-effect-kit-route-scan-path')
+  const routeCartesians = routeScanPositions.map((position) =>
+    Cartesian3.fromDegrees(position.longitude, position.latitude, position.height ?? 0),
+  )
+  routeScanDataSource.entities.add({
+    id: 'geo-effect-kit-route-scan-path-line',
+    polyline: {
+      positions: routeCartesians,
+      width: 4,
+      clampToGround: true,
+      material: new PolylineGlowMaterialProperty({
+        color: Color.fromCssColorString(initialOptions.color).withAlpha(0.72),
+        glowPower: 0.18,
+        taperPower: 0.82,
+      }),
+    },
+  })
+  routeScanDataSource.show = initialOptions.showRoute
+  viewer.dataSources.add(routeScanDataSource)
+
+  let options = initialOptions
+  let visible = true
+  let destroyed = false
+  let animationFrame = 0
+  let startedAt = performance.now()
+
+  const createRouteRadarScanEffect = (sample: { position: GeoPosition; heading: number }): RouteScannerInstance => {
+    let radarCenter = sample.position
+    let scannerDestroyed = false
+    const radarDataSource = new CustomDataSource('geo-effect-kit-route-radar-scan')
+    const material = createRadarScanMaterialProperty({
+      center: radarCenter,
+      radiusMeters: options.radiusMeters,
+      type: 'sector',
+      color: options.color,
+      scanDurationMs: options.scanDurationMs,
+      opacity: options.opacity,
+      rings: options.rings,
+      showCenter: false,
+    })
+    const radarEntity = radarDataSource.entities.add({
+      id: 'geo-effect-kit-route-radar-scan-ellipse',
+      position: new CallbackPositionProperty(
+        () => Cartesian3.fromDegrees(radarCenter.longitude, radarCenter.latitude, radarCenter.height ?? 0),
+        false,
+      ),
+      ellipse: {
+        semiMajorAxis: new ConstantProperty(options.radiusMeters),
+        semiMinorAxis: new ConstantProperty(options.radiusMeters),
+        material,
+        heightReference: HeightReference.CLAMP_TO_GROUND,
+        outline: false,
+      },
+    })
+
+    const applyRadarStyle = () => {
+      material.uniforms.color = Color.fromCssColorString(options.color).withAlpha(1)
+      material.uniforms.opacity = options.opacity
+      material.uniforms.ringsEnabled = options.rings ? 1 : 0
+      material.uniforms.scanDurationMs = options.scanDurationMs
+      if (radarEntity.ellipse) {
+        radarEntity.ellipse.semiMajorAxis = new ConstantProperty(options.radiusMeters)
+        radarEntity.ellipse.semiMinorAxis = new ConstantProperty(options.radiusMeters)
+      }
+    }
+
+    radarDataSource.show = visible
+    viewer.dataSources.add(radarDataSource)
+
+    return {
+      update(nextOptions: RouteScannerOptions) {
+        if (scannerDestroyed) return
+        if (nextOptions.center) radarCenter = nextOptions.center
+        if (
+          nextOptions.color !== undefined ||
+          nextOptions.radiusMeters !== undefined ||
+          nextOptions.scanDurationMs !== undefined ||
+          nextOptions.opacity !== undefined ||
+          nextOptions.rings !== undefined
+        ) {
+          applyRadarStyle()
+        }
+        radarDataSource.show = visible
+        viewer.scene.requestRender()
+      },
+      show() {
+        if (scannerDestroyed) return
+        radarDataSource.show = true
+        viewer.scene.requestRender()
+      },
+      hide() {
+        if (scannerDestroyed) return
+        radarDataSource.show = false
+        viewer.scene.requestRender()
+      },
+      destroy() {
+        if (scannerDestroyed) return
+        scannerDestroyed = true
+        viewer.dataSources.remove(radarDataSource, true)
+        viewer.scene.requestRender()
+      },
+    }
+  }
+
+  const createRouteConeScanEffect = (sample: { position: GeoPosition; heading: number }): RouteScannerInstance => {
+    let coneCenter = sample.position
+    let coneRouteHeading = sample.heading
+    let scannerDestroyed = false
+    let scanRotationSpeed = Math.max(1, options.speed)
+    let coneAnimationStartedAt = performance.now()
+    const coneDataSource = new CustomDataSource('geo-effect-kit-route-scan-cone')
+    const material = createScanConeMaterialProperty({
+      center: coneCenter,
+      type: options.coneType,
+      color: options.color,
+      radiusMeters: Math.max(1200, options.radiusMeters * 0.18),
+      lengthMeters: options.lengthMeters,
+      speed: scanRotationSpeed,
+      opacity: options.opacity,
+      aperture: options.aperture,
+      showOrigin: options.showOrigin,
+    })
+    function updateConeAnimationTime(): void {
+      material.uniforms.timeSeconds = (performance.now() - coneAnimationStartedAt) / 1000
+    }
+    const getConeOriginCartesian = () =>
+      Cartesian3.fromDegrees(coneCenter.longitude, coneCenter.latitude, coneCenter.height ?? 0)
+    const getConeCenterCartesian = () =>
+      Cartesian3.fromDegrees(
+        coneCenter.longitude,
+        coneCenter.latitude,
+        (coneCenter.height ?? 0) + options.lengthMeters / 2,
+      )
+    const getConeBottomRadius = () => {
+      const apertureRadius = Math.tan(CesiumMath.toRadians(options.aperture) / 2) * options.lengthMeters
+      return Math.max(Math.max(1200, options.radiusMeters * 0.18), apertureRadius)
+    }
+    const getConeOrientation = () => {
+      const heading = coneRouteHeading + options.heading + ((performance.now() - coneAnimationStartedAt) / 1000) * scanRotationSpeed * 36
+      return Transforms.headingPitchRollQuaternion(
+        getConeCenterCartesian(),
+        HeadingPitchRoll.fromDegrees(heading, 0, 0),
+      )
+    }
+    const coneEntity = coneDataSource.entities.add({
+      id: 'geo-effect-kit-route-scan-cone-volume',
+      position: new CallbackPositionProperty(() => getConeCenterCartesian(), false),
+      orientation: new CallbackProperty(() => getConeOrientation(), false),
+      cylinder: {
+        length: new ConstantProperty(options.lengthMeters),
+        topRadius: new ConstantProperty(0),
+        bottomRadius: new ConstantProperty(getConeBottomRadius()),
+        slices: 128,
+        numberOfVerticalLines: 24,
+        material,
+        outline: false,
+      },
+    })
+    let originEntity = options.showOrigin
+      ? coneDataSource.entities.add({
+          id: 'geo-effect-kit-route-scan-cone-origin',
+          position: new CallbackPositionProperty(() => getConeOriginCartesian(), false),
+          point: new PointGraphics({
+            pixelSize: 11,
+            color: new ConstantProperty(Color.fromCssColorString(options.color)),
+            outlineColor: new ConstantProperty(Color.WHITE.withAlpha(0.72)),
+            outlineWidth: 2,
+            heightReference: HeightReference.CLAMP_TO_GROUND,
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          }),
+        })
+      : undefined
+
+    const applyConeStyle = () => {
+      material.uniforms.color = Color.fromCssColorString(options.color).withAlpha(1)
+      material.uniforms.opacity = options.opacity
+      scanRotationSpeed = Math.max(1, options.speed)
+      material.uniforms.speed = scanRotationSpeed
+      material.uniforms.coneType = getRouteScanConeTypeUniform(options.coneType)
+      material.uniforms.aperture = options.aperture
+      updateConeAnimationTime()
+      if (coneEntity.cylinder) {
+        coneEntity.cylinder.length = new ConstantProperty(options.lengthMeters)
+        coneEntity.cylinder.bottomRadius = new ConstantProperty(getConeBottomRadius())
+      }
+    }
+    const syncConeOrigin = () => {
+      if (!options.showOrigin) {
+        if (originEntity) {
+          coneDataSource.entities.remove(originEntity)
+          originEntity = undefined
+        }
+        return
+      }
+      if (!originEntity) {
+        originEntity = coneDataSource.entities.add({
+          id: 'geo-effect-kit-route-scan-cone-origin',
+          position: new CallbackPositionProperty(() => getConeOriginCartesian(), false),
+          point: new PointGraphics({
+            pixelSize: 11,
+            color: new ConstantProperty(Color.fromCssColorString(options.color)),
+            outlineColor: new ConstantProperty(Color.WHITE.withAlpha(0.72)),
+            outlineWidth: 2,
+            heightReference: HeightReference.CLAMP_TO_GROUND,
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          }),
+        })
+        return
+      }
+      if (originEntity.point) originEntity.point.color = new ConstantProperty(Color.fromCssColorString(options.color))
+    }
+
+    coneDataSource.show = visible
+    viewer.dataSources.add(coneDataSource)
+
+    return {
+      update(nextOptions: RouteScannerOptions) {
+        if (scannerDestroyed) return
+        if (nextOptions.center) coneCenter = nextOptions.center
+        if (nextOptions.heading !== undefined) coneRouteHeading = nextOptions.heading
+        updateConeAnimationTime()
+        if (
+          nextOptions.color !== undefined ||
+          nextOptions.type !== undefined ||
+          nextOptions.radiusMeters !== undefined ||
+          nextOptions.lengthMeters !== undefined ||
+          nextOptions.speed !== undefined ||
+          nextOptions.opacity !== undefined ||
+          nextOptions.aperture !== undefined
+        ) {
+          applyConeStyle()
+          syncConeOrigin()
+        }
+        if (nextOptions.showOrigin !== undefined) syncConeOrigin()
+        coneDataSource.show = visible
+        viewer.scene.requestRender()
+      },
+      show() {
+        if (scannerDestroyed) return
+        coneDataSource.show = true
+        viewer.scene.requestRender()
+      },
+      hide() {
+        if (scannerDestroyed) return
+        coneDataSource.show = false
+        viewer.scene.requestRender()
+      },
+      destroy() {
+        if (scannerDestroyed) return
+        scannerDestroyed = true
+        viewer.dataSources.remove(coneDataSource, true)
+        viewer.scene.requestRender()
+      },
+    }
+  }
+
+  const createRouteScanner = (sample: { position: GeoPosition; heading: number }): RouteScannerInstance => {
+    if (options.scanMode === 'radar-scan') {
+      return createRouteRadarScanEffect(sample)
+    }
+
+    return createRouteConeScanEffect(sample)
+  }
+
+  const firstPosition = sampleRouteScanPosition(0)
+  let scanner: RouteScannerInstance = createRouteScanner(firstPosition)
+
+  const syncRouteStyle = () => {
+    routeScanDataSource.show = options.showRoute && visible
+    const routeLine = routeScanDataSource.entities.getById('geo-effect-kit-route-scan-path-line')
+    if (routeLine?.polyline) {
+      routeLine.polyline.material = new PolylineGlowMaterialProperty({
+        color: Color.fromCssColorString(options.color).withAlpha(0.72),
+        glowPower: 0.18,
+        taperPower: 0.82,
+      })
+    }
+  }
+
+  const recreateScanner = (sample: { position: GeoPosition; heading: number }) => {
+    scanner.destroy()
+    scanner = createRouteScanner(sample)
+    if (!visible) scanner.hide()
+  }
+
+  const syncModeControls = () => {
+    elements.coneType.disabled = options.scanMode !== 'scan-cone'
+    elements.length.disabled = options.scanMode !== 'scan-cone'
+    elements.heading.disabled = options.scanMode !== 'scan-cone'
+    elements.aperture.disabled = options.scanMode !== 'scan-cone'
+    elements.origin.disabled = options.scanMode !== 'scan-cone'
+    elements.scanDuration.disabled = options.scanMode !== 'radar-scan'
+    elements.rings.disabled = options.scanMode !== 'radar-scan'
+  }
+
+  const syncScanner = (sample: { position: GeoPosition; heading: number }, force = false) => {
+    if (options.scanMode === 'radar-scan') {
+      if (!force) {
+        scanner.update({ center: sample.position })
+        return
+      }
+
+      scanner.update({
+        center: sample.position,
+        color: options.color,
+        radiusMeters: options.radiusMeters,
+        scanDurationMs: options.scanDurationMs,
+        opacity: options.opacity,
+        rings: options.rings,
+      })
+      return
+    }
+
+    if (!force) {
+      scanner.update({ center: sample.position, heading: sample.heading })
+      return
+    }
+
+    scanner.update({
+      center: sample.position,
+      type: options.coneType,
+      color: options.color,
+      radiusMeters: Math.max(1200, options.radiusMeters * 0.18),
+      lengthMeters: options.lengthMeters,
+      speed: options.speed,
+      opacity: options.opacity,
+      aperture: options.aperture,
+      heading: sample.heading,
+      showOrigin: options.showOrigin,
+    })
+  }
+
+  const tick = (now: number) => {
+    if (destroyed || !visible) return
+    const elapsedSeconds = (now - startedAt) / 1000
+    const sample = sampleRouteScanPosition(elapsedSeconds * options.speed)
+    syncScanner(sample)
+    viewer.scene.requestRender()
+    animationFrame = requestAnimationFrame(tick)
+  }
+
+  const start = () => {
+    cancelAnimationFrame(animationFrame)
+    startedAt = performance.now()
+    animationFrame = requestAnimationFrame(tick)
+  }
+
+  syncModeControls()
+  start()
+
+  return {
+    update(nextOptions: Partial<RouteScanOptions>) {
+      if (destroyed) return
+      const previousScanMode = options.scanMode
+      options = { ...options, ...nextOptions }
+      syncRouteStyle()
+      const sample = sampleRouteScanPosition(((performance.now() - startedAt) / 1000) * options.speed)
+      syncModeControls()
+      if (previousScanMode !== options.scanMode) recreateScanner(sample)
+      syncScanner(sample, true)
+      viewer.scene.requestRender()
+    },
+    show() {
+      if (destroyed) return
+      visible = true
+      scanner.show()
+      syncRouteStyle()
+      start()
+    },
+    hide() {
+      if (destroyed) return
+      visible = false
+      cancelAnimationFrame(animationFrame)
+      scanner.hide()
+      routeScanDataSource.show = false
+      viewer.scene.requestRender()
+    },
+    flyTo() {
+      if (destroyed) return
+      const sphere = BoundingSphere.fromPoints(routeCartesians)
+      viewer.camera.flyToBoundingSphere(sphere, {
+        offset: new HeadingPitchRange(0.16, -0.58, Math.max(36000, sphere.radius * 2.8)),
+        duration: 1,
+      })
+    },
+    destroy() {
+      if (destroyed) return
+      destroyed = true
+      cancelAnimationFrame(animationFrame)
+      scanner.destroy()
+      viewer.dataSources.remove(routeScanDataSource, true)
+      viewer.scene.requestRender()
+    },
+    isVisible() {
+      return visible
+    },
+    isDestroyed() {
+      return destroyed
+    },
+  }
 }
 
 function destroyActiveWaterSurfaceEffects(): void {
@@ -1001,6 +1544,22 @@ function syncEffect(): void {
       heading: numberValue(elements.heading),
       showOrigin: elements.origin.checked,
     })
+  } else if (activeEffectId === 'route-scan') {
+    activeEffect?.update({
+      scanMode: getRouteScanMode(),
+      color: elements.color.value,
+      coneType: elements.coneType.value as ScanConeType,
+      radiusMeters: numberValue(elements.radius),
+      lengthMeters: numberValue(elements.length),
+      speed: numberValue(elements.speed),
+      scanDurationMs: numberValue(elements.scanDuration),
+      opacity: numberValue(elements.opacity),
+      aperture: numberValue(elements.aperture),
+      heading: numberValue(elements.heading),
+      rings: elements.rings.checked,
+      showOrigin: elements.origin.checked,
+      showRoute: elements.outline.checked,
+    })
   } else if (activeEffectId === 'temperature-field') {
     activeEffect?.update({
       polygons: beijingTemperatureFieldPolygons,
@@ -1032,6 +1591,7 @@ function syncEffect(): void {
 }
 
 function setDefaults(effectId: EffectId): void {
+  syncRadarTypeOptions(effectId)
   elements.center.checked = false
   elements.rings.checked = true
   elements.breathing.checked = true
@@ -1040,7 +1600,8 @@ function setDefaults(effectId: EffectId): void {
   elements.domeRing.checked = true
   elements.heading.value = '0'
   elements.aperture.value = '34'
-  elements.speed.value = '1'
+  elements.radius.value = elements.radius.min
+  elements.speed.value = elements.speed.min
   elements.scale.value = '1'
   elements.trailLength.value = '0.32'
   elements.pulseCount.value = '3'
@@ -1064,13 +1625,11 @@ function setDefaults(effectId: EffectId): void {
   if (effectId === 'radar-scan') {
     elements.color.value = '#36d6ff'
     elements.radarType.value = 'classic'
-    elements.radius.value = '22000'
     elements.scanDuration.value = '3600'
     elements.opacity.value = '1'
   } else if (effectId === 'ripple-spread') {
     elements.color.value = '#62e8ff'
     elements.rippleType.value = 'water'
-    elements.radius.value = '28000'
     elements.ringCount.value = '5'
     elements.duration.value = '2400'
     elements.opacity.value = '1'
@@ -1078,7 +1637,6 @@ function setDefaults(effectId: EffectId): void {
     elements.color.value = '#33f7ff'
     elements.flowType.value = 'dispatch'
     elements.width.value = '7'
-    elements.speed.value = '1.4'
     elements.trailLength.value = '0.34'
     elements.pulseCount.value = '4'
     elements.cornerRadius.value = '0.18'
@@ -1090,13 +1648,11 @@ function setDefaults(effectId: EffectId): void {
     elements.height.max = '260000'
     elements.height.step = '5000'
     elements.height.value = '220000'
-    elements.speed.value = '1.2'
     elements.trailLength.value = '0.28'
     elements.pulseCount.value = '3'
   } else if (effectId === 'pipe-flow') {
     elements.color.value = '#45dfff'
     elements.width.value = '14'
-    elements.speed.value = '1.35'
     elements.opacity.value = '1'
     elements.pipeOpacity.value = '0.34'
     elements.cornerRadius.value = '0.22'
@@ -1105,47 +1661,52 @@ function setDefaults(effectId: EffectId): void {
     elements.color.value = '#d8f3ff'
     elements.weatherType.value = 'rain'
     elements.opacity.value = '1'
-    elements.speed.value = '1'
     elements.windDirection.value = '115'
   } else if (effectId === 'post-process') {
     elements.color.value = '#ffffff'
     elements.postProcessType.value = 'bloom'
     elements.opacity.value = '1'
-    elements.speed.value = '1'
     elements.trailLength.value = '0.34'
     elements.pulseStrength.value = '0.65'
   } else if (effectId === 'water-surface') {
-    elements.color.value = '#207f91'
-    elements.waterType.value = 'river'
-    elements.height.min = '470'
-    elements.height.max = '485'
+    elements.color.value = '#00777f'
+    elements.waterType.value = 'flow'
+    elements.height.min = '0'
+    elements.height.max = '40'
     elements.height.step = '1'
-    elements.height.value = '477'
-    elements.speed.value = '0.85'
+    elements.height.value = '0'
     elements.opacity.value = '1'
-    elements.waveStrength.value = '0.24'
-    elements.reflectionStrength.value = '0.24'
-    elements.distortionScale.value = '8'
-    elements.reflectivity.value = '0.36'
-    elements.refractionStrength.value = '0.28'
-    elements.fresnelPower.value = '5.6'
-    elements.windDirection.value = '156'
+    elements.waveStrength.value = '0.32'
+    elements.reflectionStrength.value = '0.3'
+    elements.distortionScale.value = '3.7'
+    elements.reflectivity.value = '0.3'
+    elements.refractionStrength.value = '0.34'
+    elements.fresnelPower.value = '3.2'
+    elements.windDirection.value = '186'
     elements.outline.checked = false
   } else if (effectId === 'light-wall') {
     elements.color.value = '#27f5ff'
     elements.wallType.value = 'security'
     elements.height.value = '3600'
-    elements.speed.value = '1.1'
     elements.opacity.value = '1'
     elements.scanLineCount.value = '5'
   } else if (effectId === 'scan-cone') {
     elements.color.value = '#7cf7ff'
     elements.coneType.value = 'searchlight'
-    elements.radius.value = '2200'
     elements.length.value = '6200'
-    elements.speed.value = '1.2'
     elements.opacity.value = '1'
     elements.aperture.value = '38'
+  } else if (effectId === 'route-scan') {
+    elements.color.value = '#7cf7ff'
+    elements.radarType.value = 'radar-scan'
+    elements.coneType.value = 'searchlight'
+    elements.length.value = '6800'
+    elements.scanDuration.value = '2600'
+    elements.opacity.value = '1'
+    elements.aperture.value = '36'
+    elements.rings.checked = true
+    elements.origin.checked = true
+    elements.outline.checked = true
   } else if (effectId === 'temperature-field') {
     elements.color.value = '#ff8a2d'
     elements.opacity.value = '1'
@@ -1157,8 +1718,6 @@ function setDefaults(effectId: EffectId): void {
   } else {
     elements.color.value = '#57f7ff'
     elements.domeType.value = 'hex'
-    elements.radius.value = '12000'
-    elements.speed.value = '1'
     elements.opacity.value = '1'
     elements.gridDensity.value = '14'
     elements.pulseStrength.value = '0.72'
@@ -1166,6 +1725,15 @@ function setDefaults(effectId: EffectId): void {
 }
 
 function syncVisibleControls(effectId: EffectId): void {
+  elements.outlineLabel.textContent = effectId === 'route-scan' ? 'Show route path' : 'Show top outline'
+  elements.radarTypeLabel.textContent = effectId === 'route-scan' ? 'Scan effect' : 'Radar type'
+  elements.coneType.disabled = false
+  elements.length.disabled = false
+  elements.heading.disabled = false
+  elements.aperture.disabled = false
+  elements.origin.disabled = false
+  elements.scanDuration.disabled = false
+  elements.rings.disabled = false
   const visibleByEffect: Record<EffectId, ControlId[]> = {
     'radar-scan': ['colorField', 'radarTypeField', 'radiusField', 'scanDurationField', 'opacityField', 'ringsField', 'centerField'],
     'ripple-spread': ['colorField', 'rippleTypeField', 'radiusField', 'ringCountField', 'durationField', 'opacityField', 'centerField'],
@@ -1191,6 +1759,21 @@ function syncVisibleControls(effectId: EffectId): void {
     ],
     'light-wall': ['colorField', 'wallTypeField', 'heightField', 'speedField', 'opacityField', 'scanLineCountField', 'breathingField', 'outlineField'],
     'scan-cone': ['colorField', 'coneTypeField', 'radiusField', 'lengthField', 'speedField', 'opacityField', 'headingField', 'apertureField', 'originField'],
+    'route-scan': [
+      'colorField',
+      'radarTypeField',
+      'coneTypeField',
+      'radiusField',
+      'lengthField',
+      'speedField',
+      'scanDurationField',
+      'opacityField',
+      'headingField',
+      'apertureField',
+      'ringsField',
+      'originField',
+      'outlineField',
+    ],
     'shield-dome': ['colorField', 'domeTypeField', 'radiusField', 'speedField', 'opacityField', 'gridDensityField', 'pulseStrengthField', 'domeRingField'],
     'temperature-field': ['opacityField', 'pulseStrengthField', 'outlineField'],
     'fire-billboard': ['scaleField', 'frameIntervalField'],
@@ -1200,6 +1783,14 @@ function syncVisibleControls(effectId: EffectId): void {
   Object.entries(controlFields).forEach(([id, field]) => {
     field.hidden = !visible.has(id as ControlId)
   })
+}
+
+function syncRadarTypeOptions(effectId: EffectId): void {
+  if (effectId === 'route-scan') {
+    elements.radarType.innerHTML = routeScanModeOptions
+  } else {
+    elements.radarType.innerHTML = radarTypeOptions
+  }
 }
 
 function syncOutputs(): void {
@@ -1260,6 +1851,7 @@ function getTypeScriptCodeExample(): string {
   if (activeEffectId === 'water-surface') return getWaterSurfaceCode()
   if (activeEffectId === 'light-wall') return getLightWallCode()
   if (activeEffectId === 'scan-cone') return getScanConeCode()
+  if (activeEffectId === 'route-scan') return getRouteScanCode()
   if (activeEffectId === 'temperature-field') return getTemperatureFieldCode()
   if (activeEffectId === 'fire-billboard') return getFireBillboardCode()
   return getShieldDomeCode()
@@ -1345,7 +1937,7 @@ function extractImportLines(code: string): string {
 function stripImportAndDestroyLines(code: string): string {
   return code
     .split('\n')
-    .filter((line) => !line.startsWith('import ') && !line.includes('.destroy()'))
+    .filter((line) => !line.startsWith('import ') && !isCleanupLine(line))
     .join('\n')
     .trim()
 }
@@ -1353,9 +1945,18 @@ function stripImportAndDestroyLines(code: string): string {
 function extractDestroyLines(code: string): string {
   return code
     .split('\n')
-    .filter((line) => line.includes('.destroy()'))
+    .filter(isCleanupLine)
     .join('\n')
     .trim()
+}
+
+function isCleanupLine(line: string): boolean {
+  return (
+    line.includes('.destroy()') ||
+    line.includes('cancelAnimationFrame(') ||
+    line.includes('dataSources.remove(') ||
+    line.includes('entities.remove(')
+  )
 }
 
 function indentCode(code: string, spaces: number): string {
@@ -1547,6 +2148,167 @@ cone.flyTo()
 cone.destroy()`
 }
 
+function getRouteScanCode(): string {
+  const scanMode = getRouteScanMode()
+  const scannerImport = scanMode === 'radar-scan' ? 'createRadarScanMaterialProperty' : 'createScanConeMaterialProperty'
+  const cesiumImport =
+    scanMode === 'radar-scan'
+      ? 'BoundingSphere, CallbackPositionProperty, Cartesian3, Color, CustomDataSource, HeadingPitchRange, HeightReference, PolylineGlowMaterialProperty'
+      : 'BoundingSphere, CallbackPositionProperty, CallbackProperty, Cartesian3, Color, CustomDataSource, HeadingPitchRange, HeadingPitchRoll, Math as CesiumMath, PolylineGlowMaterialProperty, Transforms'
+  const scannerCode =
+    scanMode === 'radar-scan'
+      ? `let scannerCenter = firstPosition
+const scannerMaterial = createRadarScanMaterialProperty({
+  center: firstPosition,
+  radiusMeters: ${numberValue(elements.radius)},
+  type: 'sector',
+  color: '${elements.color.value}',
+  scanDurationMs: ${numberValue(elements.scanDuration)},
+  opacity: ${numberValue(elements.opacity).toFixed(2)},
+  rings: ${elements.rings.checked},
+})
+const scannerEntity = routeScanDataSource.entities.add({
+  position: new CallbackPositionProperty(
+    () => Cartesian3.fromDegrees(scannerCenter.longitude, scannerCenter.latitude, scannerCenter.height ?? 0),
+    false,
+  ),
+  ellipse: {
+    semiMajorAxis: ${numberValue(elements.radius)},
+    semiMinorAxis: ${numberValue(elements.radius)},
+    material: scannerMaterial,
+    heightReference: HeightReference.CLAMP_TO_GROUND,
+    outline: false,
+  },
+})`
+      : `let scannerCenter = firstPosition
+let scannerHeading = 0
+const scannerMaterial = createScanConeMaterialProperty({
+  center: firstPosition,
+  type: '${elements.coneType.value}',
+  color: '${elements.color.value}',
+  radiusMeters: ${Math.max(1200, numberValue(elements.radius) * 0.18).toFixed(0)},
+  lengthMeters: ${numberValue(elements.length)},
+  speed: ${numberValue(elements.speed).toFixed(2)},
+  opacity: ${numberValue(elements.opacity).toFixed(2)},
+  aperture: ${numberValue(elements.aperture)},
+})
+const scannerScanSpeed = Math.max(1, ${numberValue(elements.speed).toFixed(2)})
+const scannerLength = ${numberValue(elements.length)}
+const scannerRadius = ${Math.max(1200, numberValue(elements.radius) * 0.18).toFixed(0)}
+const scannerAperture = ${numberValue(elements.aperture)}
+const getScannerOrigin = () => Cartesian3.fromDegrees(scannerCenter.longitude, scannerCenter.latitude, scannerCenter.height ?? 0)
+const getScannerCenter = () =>
+  Cartesian3.fromDegrees(scannerCenter.longitude, scannerCenter.latitude, (scannerCenter.height ?? 0) + scannerLength / 2)
+const getScannerBottomRadius = () =>
+  Math.max(scannerRadius, Math.tan(CesiumMath.toRadians(scannerAperture) / 2) * scannerLength)
+const scannerEntity = routeScanDataSource.entities.add({
+  position: new CallbackPositionProperty(() => getScannerCenter(), false),
+  orientation: new CallbackProperty(
+    () =>
+      Transforms.headingPitchRollQuaternion(
+        getScannerCenter(),
+        HeadingPitchRoll.fromDegrees(
+          scannerHeading + ${numberValue(elements.heading)} + ((performance.now() - routeStart) / 1000) * scannerScanSpeed * 36,
+          0,
+          0,
+        ),
+      ),
+    false,
+  ),
+  cylinder: {
+    length: scannerLength,
+    topRadius: 0,
+    bottomRadius: getScannerBottomRadius(),
+    slices: 128,
+    numberOfVerticalLines: 24,
+    material: scannerMaterial,
+    outline: false,
+  },
+})
+${elements.origin.checked
+  ? `const scannerOriginEntity = routeScanDataSource.entities.add({
+  position: new CallbackPositionProperty(() => getScannerOrigin(), false),
+  point: {
+    pixelSize: 11,
+    color: Color.fromCssColorString('${elements.color.value}'),
+    outlineColor: Color.WHITE.withAlpha(0.72),
+    outlineWidth: 2,
+    disableDepthTestDistance: Number.POSITIVE_INFINITY,
+  },
+})`
+  : ''}`
+
+  const moveScannerCode =
+    scanMode === 'radar-scan'
+      ? `scannerCenter = center`
+      : `scannerCenter = center
+  scannerHeading = getRouteHeading(center, routeScanPositions[(routeIndex + 1) % routeScanPositions.length] ?? center)`
+  const animateScannerCode =
+    scanMode === 'scan-cone'
+      ? `scannerMaterial.uniforms.timeSeconds = (now - routeStart) / 1000`
+      : ''
+  const destroyScannerCode =
+    scanMode === 'radar-scan'
+      ? `routeScanDataSource.entities.remove(scannerEntity)`
+      : `routeScanDataSource.entities.remove(scannerEntity)${elements.origin.checked ? '\nrouteScanDataSource.entities.remove(scannerOriginEntity)' : ''}`
+
+  return `import { ${cesiumImport} } from 'cesium'
+import { ${scannerImport} } from '@ztgkzhaohao/geo-effect-kit'
+
+const routeScanPositions = ${formatPositions(routeScanPositions)}
+const routeScanDataSource = new CustomDataSource('route-scan-path')
+routeScanDataSource.entities.add({
+  polyline: {
+    positions: routeScanPositions.map((position) =>
+      Cartesian3.fromDegrees(position.longitude, position.latitude, position.height ?? 0),
+    ),
+    width: 4,
+    clampToGround: true,
+    material: new PolylineGlowMaterialProperty({
+      color: Color.fromCssColorString('${elements.color.value}').withAlpha(0.72),
+      glowPower: 0.18,
+      taperPower: 0.82,
+    }),
+  },
+})
+routeScanDataSource.show = ${elements.outline.checked}
+viewer.dataSources.add(routeScanDataSource)
+
+const firstPosition = routeScanPositions[0] ?? { longitude: 0, latitude: 0 }
+${scannerCode}
+
+let routeAnimationFrame = 0
+let routeStart = performance.now()
+const getRouteHeading = (start, end) => {
+  const averageLatitude = ((start.latitude + end.latitude) / 2) * (Math.PI / 180)
+  const deltaLongitude = (end.longitude - start.longitude) * Math.cos(averageLatitude)
+  const deltaLatitude = end.latitude - start.latitude
+  return ((Math.atan2(deltaLongitude, deltaLatitude) * 180) / Math.PI + 360) % 360
+}
+const moveAlongRoute = (now: number) => {
+  const elapsedSeconds = (now - routeStart) / 1000
+  const routeIndex = Math.floor(elapsedSeconds * ${numberValue(elements.speed).toFixed(2)}) % routeScanPositions.length
+  const center = routeScanPositions[routeIndex] ?? firstPosition
+  ${animateScannerCode}
+  ${moveScannerCode}
+  viewer.scene.requestRender()
+  routeAnimationFrame = requestAnimationFrame(moveAlongRoute)
+}
+routeAnimationFrame = requestAnimationFrame(moveAlongRoute)
+
+const sphere = BoundingSphere.fromPoints(
+  routeScanPositions.map((position) => Cartesian3.fromDegrees(position.longitude, position.latitude, position.height ?? 0)),
+)
+viewer.camera.flyToBoundingSphere(sphere, {
+  offset: new HeadingPitchRange(0.16, -0.58, Math.max(36000, sphere.radius * 2.8)),
+  duration: 1,
+})
+
+cancelAnimationFrame(routeAnimationFrame)
+${destroyScannerCode}
+viewer.dataSources.remove(routeScanDataSource, true)`
+}
+
 function getShieldDomeCode(): string {
   return `import { createShieldDomeEffect } from '@ztgkzhaohao/geo-effect-kit'
 
@@ -1731,8 +2493,13 @@ function showCopyStatus(label: string): void {
   }, 1200)
 }
 
-function formatPositions(positions: typeof routePositions): string {
-  return `[${positions.map((position) => `{ longitude: ${position.longitude}, latitude: ${position.latitude} }`).join(', ')}]`
+function formatPositions(positions: GeoPosition[]): string {
+  return `[${positions.map(formatPosition).join(', ')}]`
+}
+
+function formatPosition(position: GeoPosition): string {
+  const height = position.height === undefined ? '' : `, height: ${position.height}`
+  return `{ longitude: ${position.longitude}, latitude: ${position.latitude}${height} }`
 }
 
 function formatFlyLines(lines: typeof provinceCapitalFlyLineRoutes): string {
@@ -1762,42 +2529,79 @@ function formatFireBillboardPoints(points: typeof fireBillboardPoints): string {
     .join(', ')}]`
 }
 
-function buildRiverChannelPolygon(centerline: GeoPosition[], channelWidthMeters: number): GeoPosition[] {
-  if (centerline.length < 2) return centerline
-
-  const halfWidth = channelWidthMeters / 2
-  const leftBank = centerline.map((_, index) => offsetRiverBankPosition(centerline, index, halfWidth))
-  const rightBank = centerline.map((_, index) => offsetRiverBankPosition(centerline, index, -halfWidth)).reverse()
-  return [...leftBank, ...rightBank]
+function getRouteScanConeTypeUniform(type: ScanConeType): number {
+  if (type === 'searchlight') return 1
+  if (type === 'radar') return 2
+  if (type === 'camera') return 3
+  if (type === 'drone') return 4
+  return 5
 }
 
-function offsetRiverBankPosition(centerline: GeoPosition[], index: number, offsetMeters: number): GeoPosition {
-  const position = centerline[index]
-  if (!position) throw new Error('Missing river centerline position')
-  const previous = centerline[Math.max(0, index - 1)] ?? position
-  const next = centerline[Math.min(centerline.length - 1, index + 1)] ?? position
+function sampleRouteScanPosition(elapsedSeconds: number): { position: GeoPosition; heading: number } {
+  const totalDistance = routeScanSegments.reduce((sum, segment) => sum + segment.distance, 0)
+  if (totalDistance <= 0) return { position: routeScanPositions[0] ?? center, heading: 0 }
 
-  const latitudeRadians = (position.latitude * Math.PI) / 180
-  const metersPerDegreeLatitude = 111_320
-  const metersPerDegreeLongitude = Math.max(1, Math.cos(latitudeRadians) * metersPerDegreeLatitude)
-  const dxMeters = (next.longitude - previous.longitude) * metersPerDegreeLongitude
-  const dyMeters = (next.latitude - previous.latitude) * metersPerDegreeLatitude
-  const lengthMeters = Math.hypot(dxMeters, dyMeters) || 1
-  const normalX = -dyMeters / lengthMeters
-  const normalY = dxMeters / lengthMeters
+  const distance = positiveModulo(elapsedSeconds * 8200, totalDistance)
+  let traveled = 0
+  for (const segment of routeScanSegments) {
+    if (distance <= traveled + segment.distance) {
+      const ratio = segment.distance <= 0 ? 0 : (distance - traveled) / segment.distance
+      return {
+        position: interpolateGeoPosition(segment.start, segment.end, ratio),
+        heading: getRouteHeading(segment.start, segment.end),
+      }
+    }
+    traveled += segment.distance
+  }
 
+  const last = routeScanSegments.at(-1)
+  return last
+    ? { position: last.end, heading: getRouteHeading(last.start, last.end) }
+    : { position: routeScanPositions[0] ?? center, heading: 0 }
+}
+
+function getRouteScanSegments(): { start: GeoPosition; end: GeoPosition; distance: number }[] {
+  const segments: { start: GeoPosition; end: GeoPosition; distance: number }[] = []
+  for (let index = 0; index < routeScanPositions.length - 1; index += 1) {
+    const start = routeScanPositions[index]
+    const end = routeScanPositions[index + 1]
+    if (!start || !end) continue
+    const startCartesian = Cartesian3.fromDegrees(start.longitude, start.latitude, start.height ?? 0)
+    const endCartesian = Cartesian3.fromDegrees(end.longitude, end.latitude, end.height ?? 0)
+    segments.push({
+      start,
+      end,
+      distance: Cartesian3.distance(startCartesian, endCartesian),
+    })
+  }
+  return segments
+}
+
+function interpolateGeoPosition(start: GeoPosition, end: GeoPosition, ratio: number): GeoPosition {
   return {
-    longitude: roundCoordinate(position.longitude + (normalX * offsetMeters) / metersPerDegreeLongitude),
-    latitude: roundCoordinate(position.latitude + (normalY * offsetMeters) / metersPerDegreeLatitude),
+    longitude: start.longitude + (end.longitude - start.longitude) * ratio,
+    latitude: start.latitude + (end.latitude - start.latitude) * ratio,
+    height: (start.height ?? 0) + ((end.height ?? 0) - (start.height ?? 0)) * ratio,
   }
 }
 
-function roundCoordinate(value: number): number {
-  return Math.round(value * 1_000_000) / 1_000_000
+function getRouteHeading(start: GeoPosition, end: GeoPosition): number {
+  const averageLatitude = ((start.latitude + end.latitude) / 2) * (Math.PI / 180)
+  const deltaLongitude = (end.longitude - start.longitude) * Math.cos(averageLatitude)
+  const deltaLatitude = end.latitude - start.latitude
+  return positiveModulo((Math.atan2(deltaLongitude, deltaLatitude) * 180) / Math.PI, 360)
+}
+
+function positiveModulo(value: number, divisor: number): number {
+  return ((value % divisor) + divisor) % divisor
 }
 
 function numberValue(input: HTMLInputElement): number {
   return Number(input.value)
+}
+
+function getRouteScanMode(): RouteScanMode {
+  return elements.radarType.value === 'scan-cone' ? 'scan-cone' : 'radar-scan'
 }
 
 function getInput(id: string): HTMLInputElement {

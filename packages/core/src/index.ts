@@ -70,7 +70,7 @@ export const SCAN_CONE_TYPE_VALUES = ['searchlight', 'radar', 'camera', 'drone',
 
 export const SHIELD_DOME_TYPE_VALUES = ['hex', 'plasma', 'matrix', 'aegis', 'storm'] as const
 
-export const WATER_SURFACE_TYPE_VALUES = ['river', 'lake', 'flood'] as const
+export const WATER_SURFACE_TYPE_VALUES = ['river', 'lake', 'flood', 'flow'] as const
 
 export type RadarScanType = (typeof RADAR_SCAN_TYPE_VALUES)[number]
 
@@ -1018,8 +1018,7 @@ export function shouldRebuildScanCone(previous: NormalizedScanConeOptions, next:
   return (
     previous.radiusMeters !== next.radiusMeters ||
     previous.lengthMeters !== next.lengthMeters ||
-    previous.aperture !== next.aperture ||
-    !positionsEqual([previous.center], [next.center])
+    previous.aperture !== next.aperture
   )
 }
 
@@ -1488,6 +1487,13 @@ export function buildWaterSurfaceMaterialSource(): string {
       float riverWave = mix(waveA, max(riverFlow, waveB * 0.72), 0.45);
       float wave = mix(waveA, max(riverWave, lakeShimmer), waveStrength);
       wave = max(wave, floodPulse * floodEnabled);
+      // flow mirrors the yunzhou-onemap WaterPrimitive water surface style without changing river/lake/flood.
+      float flowEnabled = step(3.5, waterType);
+      float yunzhouFlow = smoothstep(0.46, 1.0, waterNoise(moving * 18.0 + flow * time * 2.2)) * (0.52 + waveA * 0.48);
+      float flowWash = smoothstep(0.42, 1.0, waterNoise(moving * 7.0 + crossFlow * time * 0.28));
+      float flowHighlight = max(yunzhouFlow, flowWash * waveB * 0.74);
+      float flowWave = mix(waveA, flowHighlight, 0.62);
+      wave = mix(wave, flowWave, flowEnabled);
       vec3 viewDirection = normalize(materialInput.positionToEyeEC);
       float viewFacing = clamp(1.0 - abs(dot(normalize(materialInput.normalEC), -viewDirection)), 0.0, 1.0);
       float fresnel = pow(viewFacing, fresnelPower) * reflectivity;
@@ -1496,7 +1502,10 @@ export function buildWaterSurfaceMaterialSource(): string {
       vec3 lakeTint = mix(color.rgb, vec3(0.36, 0.92, 0.86), 0.22);
       vec3 floodTint = mix(color.rgb, vec3(0.42, 0.68, 1.0), 0.36);
       vec3 waterColor = riverTint * riverEnabled + lakeTint * lakeEnabled + floodTint * floodEnabled;
+      vec3 flowTint = mix(color.rgb, vec3(0.0, 0.47, 0.50), 0.18);
+      waterColor = mix(waterColor, flowTint, flowEnabled);
       vec3 deepColor = mix(waterColor, vec3(0.015, 0.11, 0.18), 0.46);
+      deepColor = mix(deepColor, mix(flowTint, vec3(0.015, 0.11, 0.18), 0.54), flowEnabled);
       vec3 refractionColor = mix(deepColor, waterColor, 0.42 + wave * 0.34);
       refractionColor += vec3(0.02, 0.12, 0.16) * refractionStrength * (0.5 + waveB * 0.5);
       vec3 skyReflection = mix(vec3(0.58, 0.86, 1.0), vec3(1.0), pow(smallWave, 5.0));
@@ -1507,6 +1516,7 @@ export function buildWaterSurfaceMaterialSource(): string {
       material.normal = surfaceNormal;
       material.diffuse = finalColor * (0.56 + wave * 0.18);
       material.emission = reflectionColor * (0.14 + fresnel * 0.42) + waterColor * ((riverFlow * 0.08 + waveB * 0.06) * riverEnabled + floodPulse * floodEnabled * 0.22);
+      material.emission = mix(material.emission, reflectionColor * (0.14 + fresnel * 0.42) + waterColor * (flowHighlight * 0.11), flowEnabled);
       material.alpha = opacity * (0.62 + wave * 0.12 + fresnel * 0.2 + refractionStrength * 0.06);
       return material;
     }
@@ -1562,7 +1572,8 @@ export function buildScanConeMaterialSource(): string {
       vec2 centered = st - vec2(0.5);
       float radius = length(centered) * 2.0;
       float angle = atan(centered.y, centered.x) / 6.28318530718 + 0.5;
-      float time = fract((czm_frameNumber * 0.016667 * speed));
+      float scanTimeSeconds = max(timeSeconds, czm_frameNumber * 0.016667);
+      float time = fract(scanTimeSeconds * speed);
       float verticalFade = smoothstep(0.0, 0.12, st.t) * (1.0 - smoothstep(0.92, 1.0, st.t));
       float sweepBand = smoothstep(0.08, 0.0, abs(fract(angle - time) - 0.5));
       float radialGrid = smoothstep(0.012, 0.0, abs(fract(radius * 7.0 - time * 2.0) - 0.5));
@@ -4214,6 +4225,18 @@ function createRadarScanMaterial(options: NormalizedRadarScanOptions): Material 
   return material
 }
 
+export function createRadarScanMaterialProperty(options: RadarScanOptions): DynamicCesiumMaterialProperty {
+  const normalized = normalizeRadarScanOptions(options)
+  registerRadarScanMaterial(normalized)
+  return new DynamicCesiumMaterialProperty(GEO_RADAR_SCAN_MATERIAL_TYPE, {
+    color: Color.fromCssColorString(normalized.color).withAlpha(1),
+    opacity: normalized.opacity,
+    ringsEnabled: normalized.rings ? 1 : 0,
+    radarType: getRadarScanTypeUniform(normalized.type),
+    scanDurationMs: normalized.scanDurationMs,
+  })
+}
+
 function registerRippleSpreadMaterial(options: NormalizedRippleSpreadOptions): void {
   type MaterialCache = {
     getMaterial: (type: string) => unknown
@@ -4312,7 +4335,7 @@ function createTemperatureFieldUniforms(options: NormalizedTemperatureFieldOptio
   }
 }
 
-class DynamicCesiumMaterialProperty {
+export class DynamicCesiumMaterialProperty {
   readonly definitionChanged = new Event()
   readonly isConstant = false
   readonly uniforms: Record<string, unknown>
@@ -4348,14 +4371,16 @@ function createLightWallMaterialProperty(options: NormalizedLightWallOptions): D
   })
 }
 
-function createScanConeMaterialProperty(options: NormalizedScanConeOptions): DynamicCesiumMaterialProperty {
+export function createScanConeMaterialProperty(options: ScanConeOptions): DynamicCesiumMaterialProperty {
+  const normalized = normalizeScanConeOptions(options)
   registerScanConeMaterial()
   return new DynamicCesiumMaterialProperty(GEO_SCAN_CONE_MATERIAL_TYPE, {
-    color: Color.fromCssColorString(options.color).withAlpha(1),
-    opacity: options.opacity,
-    speed: options.speed,
-    coneType: getScanConeTypeUniform(options.type),
-    aperture: options.aperture,
+    color: Color.fromCssColorString(normalized.color).withAlpha(1),
+    opacity: normalized.opacity,
+    speed: normalized.speed,
+    timeSeconds: -1,
+    coneType: getScanConeTypeUniform(normalized.type),
+    aperture: normalized.aperture,
   })
 }
 
@@ -4408,6 +4433,7 @@ function registerScanConeMaterial(): void {
     color: Color.CYAN,
     opacity: 0.62,
     speed: 1,
+    timeSeconds: -1,
     coneType: 1,
     aperture: 34,
   }, buildScanConeMaterialSource())
@@ -4557,7 +4583,8 @@ function getShieldDomeTypeUniform(type: ShieldDomeType): number {
 function getWaterSurfaceTypeUniform(type: WaterSurfaceType): number {
   if (type === 'river') return 1
   if (type === 'lake') return 2
-  return 3
+  if (type === 'flood') return 3
+  return 4
 }
 
 function getPolylineFlowColor(type: PolylineFlowType, color: string): Color {

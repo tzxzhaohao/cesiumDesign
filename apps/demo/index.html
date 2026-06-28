@@ -50,6 +50,10 @@
             <span>scan-cone</span>
             <small>volumetric scanner</small>
           </button>
+          <button class="effect-tab" type="button" data-effect="route-scan">
+            <span>route-scan</span>
+            <small>moving scanner route</small>
+          </button>
           <button class="effect-tab" type="button" data-effect="shield-dome">
             <span>shield-dome</span>
             <small>energy protection shell</small>
@@ -91,7 +95,7 @@
               <input id="color" type="color" value="#36d6ff" />
             </label>
             <label id="radarTypeField">
-              <span>Radar type</span>
+              <span id="radarTypeLabel">Radar type</span>
               <select id="radarType">
                 <option value="classic">classic</option>
                 <option value="sector">sector</option>
@@ -181,12 +185,13 @@
                 <option value="river">river</option>
                 <option value="lake">lake</option>
                 <option value="flood">flood</option>
+                <option value="flow">flow</option>
               </select>
             </label>
             <label id="radiusField">
               <span>Radius</span>
-              <input id="radius" type="range" min="5000" max="90000" step="1000" value="22000" />
-              <output id="radiusValue">22,000 m</output>
+              <input id="radius" type="range" min="5000" max="90000" step="1000" value="5000" />
+              <output id="radiusValue">5,000 m</output>
             </label>
             <label id="widthField" hidden>
               <span>Width</span>
@@ -205,8 +210,8 @@
             </label>
             <label id="speedField" hidden>
               <span>Speed</span>
-              <input id="speed" type="range" min="0.05" max="5" step="0.05" value="1" />
-              <output id="speedValue">1.00x</output>
+              <input id="speed" type="range" min="0.05" max="5" step="0.05" value="0.05" />
+              <output id="speedValue">0.05x</output>
             </label>
             <label id="scaleField" hidden>
               <span>Scale</span>
@@ -337,7 +342,7 @@
             </label>
             <label id="outlineField" class="check-row" hidden>
               <input id="outline" type="checkbox" checked />
-              <span>Show top outline</span>
+              <span id="outlineLabel">Show top outline</span>
             </label>
             <label id="originField" class="check-row" hidden>
               <input id="origin" type="checkbox" checked />
