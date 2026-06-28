@@ -2,7 +2,7 @@
   "name": "@ztgkzhaohao/geo-effect-kit-mcp",
   "version": "0.1.0",
   "type": "module",
-  "description": "MCP server for geo-effect-kit Cesium effect manifests and integration examples.",
+  "description": "MCP server for geo-effect-kit Cesium effect manifests, schemas, and integration examples.",
   "license": "MIT",
   "author": "zhaohao",
   "repository": {
@@ -18,8 +18,12 @@
     "mcp",
     "model-context-protocol",
     "cesium",
+    "cesiumjs",
     "gis",
+    "webgis",
+    "geospatial",
     "ai-agent",
+    "map-effects",
     "geo-effect-kit"
   ],
   "main": "./dist/index.js",

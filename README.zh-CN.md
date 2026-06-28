@@ -1,8 +1,20 @@
 # geo-effect-kit
 
-面向 Cesium 的框架无关动效 SDK，适合 WebGIS 大屏、应急指挥、三维地图和 AI 辅助地理可视化项目。
+面向 Cesium 的框架无关动效 SDK，适合 WebGIS 大屏、应急指挥、数字孪生、三维地图和 AI 辅助地理可视化项目。
 
 [English README](./README.md)
+
+![npm](https://img.shields.io/npm/v/%40ztgkzhaohao%2Fgeo-effect-kit?label=npm)
+![license](https://img.shields.io/github/license/tzxzhaohao/cesiumDesign)
+![CI](https://github.com/tzxzhaohao/cesiumDesign/actions/workflows/ci.yml/badge.svg)
+
+## 在线体验
+
+- 在线 Demo：[tzxzhaohao.github.io/cesiumDesign](https://tzxzhaohao.github.io/cesiumDesign/)
+- npm 包：[`@ztgkzhaohao/geo-effect-kit`](https://www.npmjs.com/package/@ztgkzhaohao/geo-effect-kit)
+- AI/MCP 包：[`@ztgkzhaohao/geo-effect-kit-mcp`](https://www.npmjs.com/package/@ztgkzhaohao/geo-effect-kit-mcp)
+
+![geo-effect-kit 飞线 Demo](./docs/assets/geo-effect-kit-fly-line-demo.jpg)
 
 ## 特性
 
@@ -12,6 +24,7 @@
 - 统一生命周期：`update`、`show`、`hide`、`flyTo`、`destroy`。
 - 提供机器可读的效果 manifest，方便 AI 智能体读取。
 - 提供可选 MCP server，用于查询效果 schema 和集成示例。
+- 支持 React、Vue、Vite 和原生 TypeScript Cesium 项目接入。
 
 ## 安装
 
@@ -43,6 +56,12 @@ radar.flyTo()
 radar.destroy()
 ```
 
+## 为什么做这个项目
+
+很多 Cesium 项目都会反复实现雷达扫描、飞线、路径流光、水面、光墙、风险热力面、火点标记等效果。`geo-effect-kit` 把这些常见效果封装成小而明确的 TypeScript API，可以直接接入已有 Viewer，不改变你的地图初始化和业务架构。
+
+仓库还提供结构化效果 manifest 和可选 MCP server，方便 AI 编程助手查询参数、生成示例代码，而不是从 demo 里猜用法。
+
 ## 文档
 
 - [快速开始](./docs/getting-started.md)
@@ -64,11 +83,7 @@ pnpm install
 pnpm --filter geo-effect-kit-demo dev
 ```
 
-GitHub Pages 启用后，在线 demo 地址：
-
-```text
-https://tzxzhaohao.github.io/cesiumDesign/
-```
+在线 Demo：[https://tzxzhaohao.github.io/cesiumDesign/](https://tzxzhaohao.github.io/cesiumDesign/)
 
 ## AI 智能体
 
@@ -92,6 +107,12 @@ pnpm typecheck
 pnpm test
 pnpm build
 ```
+
+## 参与贡献
+
+欢迎提交 issue 和 pull request。适合第一次参与的方向包括：新增一个效果示例、补充 React/Vue 接入文档、优化 demo 控件、完善 `knowledge/effects` 中的效果 manifest。
+
+贡献流程和公开 API 约定见 [CONTRIBUTING.md](./CONTRIBUTING.md)。
 
 ## 许可证
 

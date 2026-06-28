@@ -1,8 +1,20 @@
 # geo-effect-kit
 
-Framework-neutral Cesium effects for WebGIS dashboards, emergency command systems, 3D maps, and AI-assisted geospatial applications.
+Framework-neutral Cesium effects for WebGIS dashboards, emergency command systems, digital twins, 3D maps, and AI-assisted geospatial applications.
 
 [中文文档](./README.zh-CN.md)
+
+![npm](https://img.shields.io/npm/v/%40ztgkzhaohao%2Fgeo-effect-kit?label=npm)
+![license](https://img.shields.io/github/license/tzxzhaohao/cesiumDesign)
+![CI](https://github.com/tzxzhaohao/cesiumDesign/actions/workflows/ci.yml/badge.svg)
+
+## Try It
+
+- Live demo: [tzxzhaohao.github.io/cesiumDesign](https://tzxzhaohao.github.io/cesiumDesign/)
+- npm package: [`@ztgkzhaohao/geo-effect-kit`](https://www.npmjs.com/package/@ztgkzhaohao/geo-effect-kit)
+- AI/MCP package: [`@ztgkzhaohao/geo-effect-kit-mcp`](https://www.npmjs.com/package/@ztgkzhaohao/geo-effect-kit-mcp)
+
+![geo-effect-kit fly-line demo](./docs/assets/geo-effect-kit-fly-line-demo.jpg)
 
 ## Features
 
@@ -12,6 +24,7 @@ Framework-neutral Cesium effects for WebGIS dashboards, emergency command system
 - Common lifecycle API: `update`, `show`, `hide`, `flyTo`, `destroy`.
 - Machine-readable manifests for AI agents.
 - Optional MCP server for effect discovery and integration examples.
+- Works in React, Vue, Vite, and plain TypeScript Cesium projects.
 
 ## Install
 
@@ -61,6 +74,12 @@ radar.destroy()
 | Scene weather | `createSceneWeatherEffect` | Rain, snow, fog, lightning |
 | Post process | `createPostProcessEffect` | Bloom, night vision, black-white, brightness, mosaic, depth of field |
 
+## Why This Project
+
+Cesium projects often rebuild the same visual layers for command dashboards, route dispatch, fire or flood monitoring, digital twins, and map demos. `geo-effect-kit` turns those recurring effects into small, typed primitives that plug into your existing viewer without taking over your map stack.
+
+The repository also includes structured effect manifests and an optional MCP server, so AI coding agents can discover effect options and generate integration snippets without scraping the demo.
+
 ## Documentation
 
 - [Getting started](./docs/getting-started.md)
@@ -84,11 +103,7 @@ pnpm install
 pnpm --filter geo-effect-kit-demo dev
 ```
 
-After GitHub Pages is enabled, the public demo will be available at:
-
-```text
-https://tzxzhaohao.github.io/cesiumDesign/
-```
+Public demo: [https://tzxzhaohao.github.io/cesiumDesign/](https://tzxzhaohao.github.io/cesiumDesign/)
 
 ## AI Agent Usage
 
@@ -112,6 +127,12 @@ pnpm typecheck
 pnpm test
 pnpm build
 ```
+
+## Contributing
+
+Issues and pull requests are welcome. Good first contributions include adding a new effect example, improving a framework integration guide, polishing demo controls, or expanding an effect manifest in `knowledge/effects`.
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the development workflow and public API expectations.
 
 ## License
 
