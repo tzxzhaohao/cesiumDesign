@@ -1,6 +1,10 @@
 # @ztgkzhaohao/geo-effect-kit
 
-Framework-neutral Cesium effects SDK.
+Framework-neutral Cesium effects SDK for WebGIS dashboards, emergency command systems, digital twins, 3D maps, and AI-assisted geospatial applications.
+
+- Demo: https://tzxzhaohao.github.io/cesiumDesign/
+- Repository: https://github.com/tzxzhaohao/cesiumDesign
+- Documentation: https://github.com/tzxzhaohao/cesiumDesign#readme
 
 ## Install
 
@@ -31,7 +35,6 @@ radar.destroy()
 
 ## Documentation
 
-- Repository: https://github.com/tzxzhaohao/cesiumDesign
 - Demo: https://tzxzhaohao.github.io/cesiumDesign/
 - AI/MCP package: `@ztgkzhaohao/geo-effect-kit-mcp`
 

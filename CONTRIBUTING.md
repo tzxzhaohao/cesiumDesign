@@ -30,6 +30,15 @@ Before opening a pull request:
 - Run `pnpm typecheck`, `pnpm test`, and `pnpm build`.
 - Keep generated or vendor files out of unrelated changes.
 
+## Good first contributions
+
+- Add a small demo preset for an existing effect.
+- Improve one framework guide in `docs/react.md`, `docs/vue.md`, or `docs/vite-cesium.md`.
+- Add a missing option example to one file in `knowledge/docs`.
+- Expand an effect manifest in `knowledge/effects` with clearer examples.
+- Add a focused test for one lifecycle behavior in `packages/core/test`.
+- Report Cesium version, framework, browser, and reproduction steps when opening a bug.
+
 ## Public API expectations
 
 Effects should accept an existing Cesium `Viewer` and return an instance with the common lifecycle methods:
