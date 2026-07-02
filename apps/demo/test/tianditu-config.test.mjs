@@ -30,14 +30,16 @@ test('demo defaults every animation opacity control to the maximum value', () =>
   assert.deepEqual([...new Set(opacityDefaults)], ['1'])
 })
 
-test('demo defaults Radius and Speed controls to their minimum values', () => {
+test('demo defaults Radius to its minimum and Speed to 1x', () => {
   const source = readFileSync(new URL('../src/main.ts', import.meta.url), 'utf8')
   const setDefaultsBody = source.match(/function setDefaults\(effectId: EffectId\): void \{[\s\S]*?\n\}\n\nfunction syncVisibleControls/)?.[0] ?? ''
 
   assert.match(setDefaultsBody, /elements\.radius\.value = elements\.radius\.min/)
-  assert.match(setDefaultsBody, /elements\.speed\.value = elements\.speed\.min/)
+  assert.match(setDefaultsBody, /elements\.speed\.value = '1'/)
   assert.doesNotMatch(setDefaultsBody, /elements\.radius\.value = '\d/)
-  assert.doesNotMatch(setDefaultsBody, /elements\.speed\.value = '\d/)
+  assert.doesNotMatch(setDefaultsBody, /elements\.speed\.value = elements\.speed\.min/)
+  assert.match(source, /function formatSpeedValue\(value: number\): string/)
+  assert.match(source, /elements\.speedValue\.textContent = `\$\{formatSpeedValue\(numberValue\(elements\.speed\)\)\}x`/)
 })
 
 test('demo uses FireHotspot terrain and places water-surface on the yunzhou-onemap river polygon', () => {
@@ -102,6 +104,120 @@ test('demo exposes fly-line with all three flight modes and generated code', () 
   assert.match(source, /provinceCapitalFlyLineRoutes/)
   assert.match(source, /mode: elements\.flyMode\.value/)
   assert.match(source, /getFlyLineCode/)
+})
+
+test('demo exposes material-polyline with custom image controls and generated code', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
+  const source = readFileSync(new URL('../src/main.ts', import.meta.url), 'utf8')
+  const materialPolylineCopyBlock = source.slice(
+    source.indexOf("'material-polyline': {"),
+    source.indexOf("  'fly-line': {"),
+  )
+  const materialPolylineUsageBlock = source.slice(
+    source.indexOf('function getMaterialPolylineCode'),
+    source.indexOf('function getFlyLineCode'),
+  )
+
+  assert.match(html, /data-effect="material-polyline"/)
+  assert.match(html, /id="materialPolylineCustomImage"/)
+  assert.match(html, /Custom image URL/)
+  assert.doesNotMatch(html, /id="materialPolylineStyle"/)
+  assert.doesNotMatch(html, /id="materialPolylineImagePreset"/)
+  assert.doesNotMatch(html, /id="materialPolylineShowcase"/)
+  assert.doesNotMatch(html, /Material style/)
+  assert.doesNotMatch(html, /Image preset/)
+  assert.doesNotMatch(html, /Show style showcase/)
+  assert.match(source, /createMaterialPolylineEffect/)
+  assert.match(source, /materialPolylineCustomImage/)
+  assert.match(source, /getVisibleMaterialPolylineRoutes/)
+  assert.match(source, /const materialPolylinePrimaryRoute = materialPolylineShowcaseRoutes\[0\]/)
+  assert.match(source, /return \[materialPolylinePrimaryRoute\]/)
+  assert.doesNotMatch(source, /materialPolylineStyle:/)
+  assert.doesNotMatch(source, /materialPolylineImagePreset:/)
+  assert.doesNotMatch(source, /materialPolylineStyleField/)
+  assert.doesNotMatch(source, /materialPolylineImagePresetField/)
+  assert.doesNotMatch(source, /materialPolylineShowcase:/)
+  assert.doesNotMatch(source, /materialPolylineShowcaseField/)
+  assert.match(materialPolylineCopyBlock, /single editable custom image URL/)
+  assert.match(materialPolylineCopyBlock, /only editable field is the custom image URL/)
+  assert.doesNotMatch(materialPolylineCopyBlock, /Show style showcase/)
+  assert.doesNotMatch(materialPolylineCopyBlock, /Material style/)
+  assert.doesNotMatch(materialPolylineCopyBlock, /Image preset/)
+  for (const texture of [
+    'line-pulse.png',
+    'line-gradual.png',
+    'line-arrow-blue.png',
+    'line-colour.png',
+    'arrow-h.png',
+    'line-arrow-dovetail.png',
+    'line-color-yellow.png',
+    'line-tarans.png',
+    'line-interval.png',
+    'line-gradient.png',
+    'arrow-small.png',
+  ]) {
+    assert.equal(source.includes(`https://data.mars3d.cn/img/textures/${texture}`), true)
+  }
+  assert.match(source, /getMaterialPolylineRouteImage/)
+  assert.match(source, /return index === 0 \? customImage \?\? route\.image : route\.image/)
+  assert.match(source, /function getMaterialPolylineRouteOptions/)
+  assert.match(source, /style: route\.style/)
+  assert.match(source, /color: route\.color/)
+  assert.doesNotMatch(source, /imagePreset: route\.imagePreset/)
+  assert.doesNotMatch(source, /function getMaterialPolylineShowcaseCode/)
+  assert.doesNotMatch(source, /const materialLineOptions = \[/)
+  assert.match(source, /getMaterialPolylineCode/)
+  assert.match(source, /'material-polyline': \['materialPolylineCustomImageField'\]/)
+  assert.match(source, /formatMaterialPolylineOptions\(route, 0, routeImage, 2\)/)
+  assert.doesNotMatch(source, /formatMaterialPolylineOptions\(route, 0, routeImage, 2, \{ compact: true \}\)/)
+  assert.match(materialPolylineUsageBlock, /image: '\$\{image\}'/)
+  assert.doesNotMatch(materialPolylineUsageBlock, /style:/)
+  assert.doesNotMatch(materialPolylineUsageBlock, /color:/)
+  assert.doesNotMatch(materialPolylineUsageBlock, /secondaryColor:/)
+  assert.doesNotMatch(materialPolylineUsageBlock, /backgroundColor:/)
+  assert.doesNotMatch(materialPolylineUsageBlock, /outlineWidth:/)
+  assert.doesNotMatch(materialPolylineUsageBlock, /imagePreset:/)
+})
+
+test('material-polyline Mars3D image routes stay fixed behind the single URL control', () => {
+  const source = readFileSync(new URL('../src/main.ts', import.meta.url), 'utf8')
+  const routeBlock = source.slice(
+    source.indexOf('const materialPolylineShowcaseRoutes'),
+    source.indexOf('const materialPolylinePrimaryRoute'),
+  )
+
+  assert.equal((routeBlock.match(/image: mars3dMaterialPolylineTextures\./g) ?? []).length, 11)
+  assert.equal((routeBlock.match(/style: 'flow'/g) ?? []).length, 11)
+  assert.doesNotMatch(routeBlock, /style: 'navigation'/)
+  assert.doesNotMatch(routeBlock, /style: 'cross'/)
+  assert.doesNotMatch(routeBlock, /style: 'three-dash'/)
+
+  const optionsBlock = source.slice(
+    source.indexOf('function getMaterialPolylineRouteOptions'),
+    source.indexOf('function createMaterialPolylineEffects'),
+  )
+  assert.doesNotMatch(optionsBlock, /isMaterialPolylineRouteEditable/)
+  assert.doesNotMatch(optionsBlock, /elements\.materialPolylineStyle/)
+  assert.doesNotMatch(optionsBlock, /elements\.materialPolylineImagePreset/)
+  assert.doesNotMatch(optionsBlock, /elements\.color/)
+  assert.doesNotMatch(optionsBlock, /numberValue\(elements\.width\)/)
+  assert.doesNotMatch(optionsBlock, /numberValue\(elements\.speed\)/)
+  assert.doesNotMatch(optionsBlock, /numberValue\(elements\.cornerRadius\)/)
+  assert.doesNotMatch(optionsBlock, /materialPolylineShowcase/)
+  assert.match(optionsBlock, /style: route\.style/)
+  assert.match(optionsBlock, /color: route\.color/)
+  assert.match(optionsBlock, /width: route\.width/)
+  assert.match(optionsBlock, /speed: 1/)
+  assert.doesNotMatch(optionsBlock, /imagePreset/)
+  assert.match(optionsBlock, /cornerRadius: 0\.12/)
+})
+
+test('demo HUD controls avoid horizontal overflow', () => {
+  const styles = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8')
+
+  assert.match(styles, /\.hud\s*\{[\s\S]*overflow-x:\s*hidden;/)
+  assert.match(styles, /\.hud\s*\{[\s\S]*overflow-y:\s*auto;/)
+  assert.match(styles, /\.control-grid input\[type="color"\],[\s\S]*\.control-grid input\[type="url"\],[\s\S]*\.control-grid select\s*\{[\s\S]*box-sizing:\s*border-box;/)
 })
 
 test('demo Usage panel exposes TypeScript React Vue templates and clipboard copy', () => {

@@ -26,6 +26,7 @@ import {
 import {
   createFlyLineEffect,
   createLightWallEffect,
+  createMaterialPolylineEffect,
   createPipeFlowEffect,
   createPostProcessEffect,
   createPolylineFlowEffect,
@@ -44,6 +45,9 @@ import {
   type FlyLineMode,
   type LightWallEffectInstance,
   type LightWallType,
+  type MaterialPolylineEffectInstance,
+  type MaterialPolylineOptions,
+  type MaterialPolylineStyle,
   type PipeFlowEffectInstance,
   type PostProcessEffectInstance,
   type PostProcessType,
@@ -77,6 +81,7 @@ type EffectId =
   | 'radar-scan'
   | 'ripple-spread'
   | 'polyline-flow'
+  | 'material-polyline'
   | 'fly-line'
   | 'pipe-flow'
   | 'scene-weather'
@@ -94,6 +99,7 @@ type ActiveEffect =
   | RadarScanEffectInstance
   | RippleSpreadEffectInstance
   | PolylineFlowEffectInstance
+  | MaterialPolylineEffectInstance
   | FlyLineEffectInstance
   | PipeFlowEffectInstance
   | SceneWeatherEffectInstance
@@ -164,6 +170,7 @@ type ControlId =
   | 'radarTypeField'
   | 'rippleTypeField'
   | 'flowTypeField'
+  | 'materialPolylineCustomImageField'
   | 'flyModeField'
   | 'wallTypeField'
   | 'coneTypeField'
@@ -221,13 +228,212 @@ const routeScanModeOptions = `
                 <option value="radar-scan">radar-scan</option>
                 <option value="scan-cone">scan-cone</option>`
 const center = { longitude: 116.391, latitude: 39.907 }
-const routePositions = [
+const routePositions: GeoPosition[] = [
   { longitude: 116.285, latitude: 39.87 },
   { longitude: 116.335, latitude: 39.92 },
   { longitude: 116.394, latitude: 39.91 },
   { longitude: 116.452, latitude: 39.95 },
   { longitude: 116.505, latitude: 39.9 },
 ]
+type MaterialPolylineShowcaseRoute = {
+  name: string
+  style: MaterialPolylineStyle
+  image?: string
+  color: string
+  secondaryColor: string
+  backgroundColor: string
+  width: number
+  repeat: { x: number; y: number }
+  positions: GeoPosition[]
+}
+const mars3dMaterialPolylineTextures = {
+  pulse: 'https://data.mars3d.cn/img/textures/line-pulse.png',
+  gradual: 'https://data.mars3d.cn/img/textures/line-gradual.png',
+  arrowBlue: 'https://data.mars3d.cn/img/textures/line-arrow-blue.png',
+  colour: 'https://data.mars3d.cn/img/textures/line-colour.png',
+  arrowHorizontal: 'https://data.mars3d.cn/img/textures/arrow-h.png',
+  dovetail: 'https://data.mars3d.cn/img/textures/line-arrow-dovetail.png',
+  yellow: 'https://data.mars3d.cn/img/textures/line-color-yellow.png',
+  transparent: 'https://data.mars3d.cn/img/textures/line-tarans.png',
+  interval: 'https://data.mars3d.cn/img/textures/line-interval.png',
+  gradient: 'https://data.mars3d.cn/img/textures/line-gradient.png',
+  smallArrow: 'https://data.mars3d.cn/img/textures/arrow-small.png',
+} as const
+const materialPolylineShowcaseRoutes: MaterialPolylineShowcaseRoute[] = [
+  {
+    name: 'line-pulse.png',
+    style: 'flow',
+    image: mars3dMaterialPolylineTextures.pulse,
+    color: '#00ff00',
+    secondaryColor: '#ffffff',
+    backgroundColor: 'rgba(0, 0, 0, 0)',
+    width: 5,
+    repeat: { x: 4, y: 1 },
+    positions: routePositions,
+  },
+  {
+    name: 'line-gradual.png',
+    style: 'flow',
+    image: mars3dMaterialPolylineTextures.gradual,
+    color: '#66bd63',
+    secondaryColor: '#ffffff',
+    backgroundColor: 'rgba(0, 0, 0, 0)',
+    width: 8,
+    repeat: { x: 2, y: 1 },
+    positions: [
+      { longitude: 116.266, latitude: 39.842 },
+      { longitude: 116.336, latitude: 39.849 },
+      { longitude: 116.401, latitude: 39.834 },
+      { longitude: 116.488, latitude: 39.858 },
+      { longitude: 116.542, latitude: 39.835 },
+    ],
+  },
+  {
+    name: 'line-arrow-blue.png',
+    style: 'flow',
+    image: mars3dMaterialPolylineTextures.arrowBlue,
+    color: '#1a9850',
+    secondaryColor: '#ffffff',
+    backgroundColor: 'rgba(0, 0, 0, 0)',
+    width: 10,
+    repeat: { x: 5, y: 1 },
+    positions: [
+      { longitude: 116.298, latitude: 39.985 },
+      { longitude: 116.365, latitude: 40.01 },
+      { longitude: 116.446, latitude: 39.996 },
+      { longitude: 116.526, latitude: 40.022 },
+    ],
+  },
+  {
+    name: 'line-colour.png',
+    style: 'flow',
+    image: mars3dMaterialPolylineTextures.colour,
+    color: '#ffffff',
+    secondaryColor: '#f5ff6b',
+    backgroundColor: 'rgba(0, 0, 0, 0)',
+    width: 10,
+    repeat: { x: 1, y: 1 },
+    positions: [
+      { longitude: 116.28, latitude: 39.804 },
+      { longitude: 116.354, latitude: 39.787 },
+      { longitude: 116.432, latitude: 39.805 },
+      { longitude: 116.514, latitude: 39.784 },
+    ],
+  },
+  {
+    name: 'arrow-h.png',
+    style: 'flow',
+    image: mars3dMaterialPolylineTextures.arrowHorizontal,
+    color: '#00ffff',
+    secondaryColor: '#ffffff',
+    backgroundColor: 'rgba(0, 0, 0, 0)',
+    width: 10,
+    repeat: { x: 20, y: 1 },
+    positions: [
+      { longitude: 116.586, latitude: 39.99 },
+      { longitude: 116.516, latitude: 39.966 },
+      { longitude: 116.444, latitude: 39.984 },
+      { longitude: 116.371, latitude: 39.958 },
+    ],
+  },
+  {
+    name: 'line-arrow-dovetail.png',
+    style: 'flow',
+    image: mars3dMaterialPolylineTextures.dovetail,
+    color: '#a6d96a',
+    secondaryColor: '#ffffff',
+    backgroundColor: 'rgba(0, 0, 0, 0)',
+    width: 18,
+    repeat: { x: 4, y: 1 },
+    positions: [
+      { longitude: 116.564, latitude: 39.852 },
+      { longitude: 116.496, latitude: 39.889 },
+      { longitude: 116.428, latitude: 39.874 },
+      { longitude: 116.362, latitude: 39.904 },
+    ],
+  },
+  {
+    name: 'line-color-yellow.png',
+    style: 'flow',
+    image: mars3dMaterialPolylineTextures.yellow,
+    color: '#7fff00',
+    secondaryColor: '#fffb96',
+    backgroundColor: 'rgba(0, 0, 0, 0)',
+    width: 5,
+    repeat: { x: 1, y: 1 },
+    positions: [
+      { longitude: 116.244, latitude: 39.93 },
+      { longitude: 116.315, latitude: 39.965 },
+      { longitude: 116.393, latitude: 39.972 },
+      { longitude: 116.478, latitude: 39.992 },
+    ],
+  },
+  {
+    name: 'line-tarans.png',
+    style: 'flow',
+    image: mars3dMaterialPolylineTextures.transparent,
+    color: 'rgba(89, 249, 255, 0.8)',
+    secondaryColor: '#ffffff',
+    backgroundColor: 'rgba(0, 0, 0, 0)',
+    width: 5,
+    repeat: { x: 1, y: 1 },
+    positions: [
+      { longitude: 116.248, latitude: 39.875 },
+      { longitude: 116.322, latitude: 39.853 },
+      { longitude: 116.397, latitude: 39.872 },
+      { longitude: 116.474, latitude: 39.846 },
+    ],
+  },
+  {
+    name: 'line-interval.png',
+    style: 'flow',
+    image: mars3dMaterialPolylineTextures.interval,
+    color: '#ffffff',
+    secondaryColor: '#35d7ff',
+    backgroundColor: 'rgba(0, 0, 0, 0)',
+    width: 7,
+    repeat: { x: 10, y: 1 },
+    positions: [
+      { longitude: 116.596, latitude: 39.902 },
+      { longitude: 116.528, latitude: 39.874 },
+      { longitude: 116.459, latitude: 39.898 },
+      { longitude: 116.389, latitude: 39.869 },
+    ],
+  },
+  {
+    name: 'line-gradient.png',
+    style: 'flow',
+    image: mars3dMaterialPolylineTextures.gradient,
+    color: '#ffffff',
+    secondaryColor: '#ffffff',
+    backgroundColor: 'rgba(0, 0, 0, 0)',
+    width: 3,
+    repeat: { x: 1, y: 1 },
+    positions: [
+      { longitude: 116.226, latitude: 39.965 },
+      { longitude: 116.302, latitude: 39.992 },
+      { longitude: 116.381, latitude: 39.976 },
+      { longitude: 116.46, latitude: 40.006 },
+    ],
+  },
+  {
+    name: 'arrow-small.png',
+    style: 'flow',
+    image: mars3dMaterialPolylineTextures.smallArrow,
+    color: '#00ffff',
+    secondaryColor: '#b6fff8',
+    backgroundColor: '#0000ff',
+    width: 10,
+    repeat: { x: 40, y: 1 },
+    positions: [
+      { longitude: 116.572, latitude: 39.944 },
+      { longitude: 116.496, latitude: 39.923 },
+      { longitude: 116.421, latitude: 39.947 },
+      { longitude: 116.346, latitude: 39.928 },
+    ],
+  },
+]
+const materialPolylinePrimaryRoute = materialPolylineShowcaseRoutes[0] as MaterialPolylineShowcaseRoute
 const routeScanPositions = [
   { longitude: 116.312, latitude: 39.896, height: 260 },
   { longitude: 116.356, latitude: 39.935, height: 300 },
@@ -431,6 +637,7 @@ let activeEffectId: EffectId = 'polyline-flow'
 let activeCodeTemplate: CodeTemplate = 'typescript'
 let activeEffect: ActiveEffect | null = null
 let activeWaterSurfaceEffects: WaterSurfaceEffectInstance[] = []
+let activeMaterialPolylineEffects: MaterialPolylineEffectInstance[] = []
 let temperatureSampleDataSource: CustomDataSource | null = null
 
 const viewer = new Viewer('cesiumContainer', {
@@ -461,6 +668,7 @@ const elements = {
   radarType: getSelect('radarType'),
   rippleType: getSelect('rippleType'),
   flowType: getSelect('flowType'),
+  materialPolylineCustomImage: getInput('materialPolylineCustomImage'),
   flyMode: getSelect('flyMode'),
   wallType: getSelect('wallType'),
   coneType: getSelect('coneType'),
@@ -543,6 +751,7 @@ const controlFields: Record<ControlId, HTMLElement> = {
   radarTypeField: getElement('radarTypeField'),
   rippleTypeField: getElement('rippleTypeField'),
   flowTypeField: getElement('flowTypeField'),
+  materialPolylineCustomImageField: getElement('materialPolylineCustomImageField'),
   flyModeField: getElement('flyModeField'),
   wallTypeField: getElement('wallTypeField'),
   coneTypeField: getElement('coneTypeField'),
@@ -615,6 +824,16 @@ const effectCopy: Record<EffectId, { title: string; description: string; notes: 
       'speed, width, trailLength, and pulseCount tune how aggressive the moving light trail feels.',
       'cornerRadius optionally rounds route bends while keeping the default SDK behavior sharp for compatibility.',
       'The base line uses Cesium PolylineGlowMaterialProperty, with animated trail segments layered above it.',
+    ],
+  },
+  'material-polyline': {
+    title: 'Material Polyline',
+    description: 'Mars3D-style animated texture line with a single editable custom image URL.',
+    notes: [
+      'Use createMaterialPolylineEffect(viewer, options) when a route needs a texture-driven Cesium material line.',
+      'The demo keeps color, style, width, repeat, and speed fixed so the only editable field is the custom image URL.',
+      'Paste a PNG, GIF, or data URL into Custom image URL to replace the built-in Mars3D texture for the route.',
+      'In business screens, store the image URL and pass it as image when recreating the effect.',
     ],
   },
   'fly-line': {
@@ -742,6 +961,7 @@ document.querySelectorAll<HTMLButtonElement>('.template-tab').forEach((button) =
   elements.radarType,
   elements.rippleType,
   elements.flowType,
+  elements.materialPolylineCustomImage,
   elements.flyMode,
   elements.wallType,
   elements.coneType,
@@ -790,6 +1010,7 @@ document.querySelectorAll<HTMLButtonElement>('.template-tab').forEach((button) =
 
 getElement('flyTo').addEventListener('click', () => {
   if (activeEffectId === 'water-surface') flyToWaterSurface()
+  else if (activeEffectId === 'material-polyline') flyToMaterialPolyline()
   else activeEffect?.flyTo()
 })
 
@@ -803,6 +1024,7 @@ loadBeijingBoundaryFromTianditu().catch(() => undefined)
 window.addEventListener('beforeunload', () => {
   activeEffect?.destroy()
   destroyActiveWaterSurfaceEffects()
+  destroyActiveMaterialPolylineEffects()
   if (temperatureSampleDataSource) viewer.dataSources.remove(temperatureSampleDataSource, true)
   viewer.destroy()
 })
@@ -812,10 +1034,13 @@ function switchEffect(effectId: EffectId): void {
   activeEffect?.destroy()
   activeEffect = null
   destroyActiveWaterSurfaceEffects()
+  destroyActiveMaterialPolylineEffects()
   setDefaults(effectId)
   syncTemperatureSampleLayer(effectId === 'temperature-field')
   if (effectId === 'water-surface') {
     activeWaterSurfaceEffects = createWaterSurfaceEffects()
+  } else if (effectId === 'material-polyline') {
+    activeMaterialPolylineEffects = createMaterialPolylineEffects()
   } else {
     activeEffect = createEffect(effectId)
   }
@@ -823,6 +1048,7 @@ function switchEffect(effectId: EffectId): void {
   syncVisibleControls(effectId)
   syncEffect()
   if (effectId === 'water-surface') flyToWaterSurface()
+  else if (effectId === 'material-polyline') flyToMaterialPolyline()
   else activeEffect?.flyTo()
 }
 
@@ -997,6 +1223,64 @@ function createWaterSurfaceEffects(): WaterSurfaceEffectInstance[] {
       outline: false,
     }),
   )
+}
+
+function getMaterialPolylineRouteOptions(
+  route: MaterialPolylineShowcaseRoute,
+  index: number,
+): Omit<MaterialPolylineOptions, 'positions' | 'image'> & { positions: GeoPosition[] } {
+  return {
+    positions: route.positions,
+    style: route.style,
+    color: route.color,
+    secondaryColor: route.secondaryColor,
+    backgroundColor: route.backgroundColor,
+    width: route.width,
+    outlineWidth: 2,
+    speed: 1,
+    repeat: route.repeat,
+    cornerRadius: 0.12,
+    clampToGround: true,
+  }
+}
+
+function createMaterialPolylineEffects(): MaterialPolylineEffectInstance[] {
+  const routes = getVisibleMaterialPolylineRoutes()
+
+  return routes.map((route, index) => {
+    const routeImage = getMaterialPolylineRouteImage(route, index)
+    const options = getMaterialPolylineRouteOptions(route, index)
+
+    return createMaterialPolylineEffect(viewer, routeImage ? { ...options, image: routeImage } : options)
+  })
+}
+
+function destroyActiveMaterialPolylineEffects(): void {
+  activeMaterialPolylineEffects.forEach((effect) => effect.destroy())
+  activeMaterialPolylineEffects = []
+}
+
+function flyToMaterialPolyline(): void {
+  const positions = getVisibleMaterialPolylineRoutes().flatMap((route) => route.positions)
+  const sphere = BoundingSphere.fromPoints(
+    positions.map((position) => Cartesian3.fromDegrees(position.longitude, position.latitude, position.height ?? 0)),
+  )
+  viewer.camera.flyToBoundingSphere(sphere, {
+    offset: new HeadingPitchRange(0.16, -0.62, Math.max(36000, sphere.radius * 2.7)),
+    duration: 1,
+  })
+}
+
+function getVisibleMaterialPolylineRoutes(): MaterialPolylineShowcaseRoute[] {
+  return [materialPolylinePrimaryRoute]
+}
+
+function getMaterialPolylineRouteImage(
+  route: MaterialPolylineShowcaseRoute,
+  index: number,
+): string | undefined {
+  const customImage = materialPolylineCustomImageValue()
+  return index === 0 ? customImage ?? route.image : route.image
 }
 
 function createRouteScanEffect(): RouteScanEffectInstance {
@@ -1464,6 +1748,19 @@ function syncEffect(): void {
       pulseCount: numberValue(elements.pulseCount),
       cornerRadius: numberValue(elements.cornerRadius),
     })
+  } else if (activeEffectId === 'material-polyline') {
+    const routes = getVisibleMaterialPolylineRoutes()
+    if (activeMaterialPolylineEffects.length !== routes.length) {
+      destroyActiveMaterialPolylineEffects()
+      activeMaterialPolylineEffects = createMaterialPolylineEffects()
+    }
+    activeMaterialPolylineEffects.forEach((effect, index) => {
+      const route = routes[index]
+      if (!route) return
+      const routeImage = getMaterialPolylineRouteImage(route, index)
+      const options = getMaterialPolylineRouteOptions(route, index)
+      effect.update(routeImage ? { ...options, image: routeImage } : options)
+    })
   } else if (activeEffectId === 'fly-line') {
     activeEffect?.update({
       mode: elements.flyMode.value as FlyLineMode,
@@ -1601,7 +1898,7 @@ function setDefaults(effectId: EffectId): void {
   elements.heading.value = '0'
   elements.aperture.value = '34'
   elements.radius.value = elements.radius.min
-  elements.speed.value = elements.speed.min
+  elements.speed.value = '1'
   elements.scale.value = '1'
   elements.trailLength.value = '0.32'
   elements.pulseCount.value = '3'
@@ -1640,6 +1937,8 @@ function setDefaults(effectId: EffectId): void {
     elements.trailLength.value = '0.34'
     elements.pulseCount.value = '4'
     elements.cornerRadius.value = '0.18'
+  } else if (effectId === 'material-polyline') {
+    elements.materialPolylineCustomImage.value = ''
   } else if (effectId === 'fly-line') {
     elements.color.value = '#5ee8ff'
     elements.flyMode.value = 'hub-spoke'
@@ -1738,6 +2037,7 @@ function syncVisibleControls(effectId: EffectId): void {
     'radar-scan': ['colorField', 'radarTypeField', 'radiusField', 'scanDurationField', 'opacityField', 'ringsField', 'centerField'],
     'ripple-spread': ['colorField', 'rippleTypeField', 'radiusField', 'ringCountField', 'durationField', 'opacityField', 'centerField'],
     'polyline-flow': ['colorField', 'flowTypeField', 'widthField', 'speedField', 'trailLengthField', 'pulseCountField', 'cornerRadiusField'],
+    'material-polyline': ['materialPolylineCustomImageField'],
     'fly-line': ['colorField', 'flyModeField', 'widthField', 'heightField', 'speedField', 'trailLengthField', 'pulseCountField'],
     'pipe-flow': ['colorField', 'widthField', 'speedField', 'opacityField', 'pipeOpacityField', 'cornerRadiusField', 'bubbleDensityField'],
     'scene-weather': ['colorField', 'weatherTypeField', 'speedField', 'opacityField', 'windDirectionField'],
@@ -1798,7 +2098,7 @@ function syncOutputs(): void {
   elements.widthValue.textContent = `${numberValue(elements.width).toLocaleString()} px`
   elements.heightValue.textContent = `${numberValue(elements.height).toLocaleString()} m`
   elements.lengthValue.textContent = `${numberValue(elements.length).toLocaleString()} m`
-  elements.speedValue.textContent = `${numberValue(elements.speed).toFixed(2)}x`
+  elements.speedValue.textContent = `${formatSpeedValue(numberValue(elements.speed))}x`
   elements.scaleValue.textContent = `${numberValue(elements.scale).toFixed(2)}x`
   elements.scanDurationValue.textContent = `${numberValue(elements.scanDuration).toLocaleString()} ms`
   elements.frameIntervalValue.textContent = `${numberValue(elements.frameInterval).toLocaleString()} ms`
@@ -1844,6 +2144,7 @@ function getTypeScriptCodeExample(): string {
   if (activeEffectId === 'radar-scan') return getRadarCode()
   if (activeEffectId === 'ripple-spread') return getRippleCode()
   if (activeEffectId === 'polyline-flow') return getPolylineCode()
+  if (activeEffectId === 'material-polyline') return getMaterialPolylineCode()
   if (activeEffectId === 'fly-line') return getFlyLineCode()
   if (activeEffectId === 'pipe-flow') return getPipeFlowCode()
   if (activeEffectId === 'scene-weather') return getSceneWeatherCode()
@@ -2017,6 +2318,42 @@ const flow = createPolylineFlowEffect(viewer, {
 
 flow.flyTo()
 flow.destroy()`
+}
+
+function getMaterialPolylineCode(): string {
+  const route = materialPolylinePrimaryRoute
+  const routeImage = getMaterialPolylineRouteImage(route, 0)
+
+  return `import { createMaterialPolylineEffect } from '@ztgkzhaohao/geo-effect-kit'
+
+const materialLine = createMaterialPolylineEffect(viewer, {
+${formatMaterialPolylineOptions(route, 0, routeImage, 2)}
+})
+
+materialLine.flyTo()
+materialLine.destroy()`
+}
+
+function formatMaterialPolylineOptions(
+  route: MaterialPolylineShowcaseRoute,
+  index: number,
+  image: string | undefined,
+  indent: number,
+): string {
+  const prefix = ' '.repeat(indent)
+  const options = getMaterialPolylineRouteOptions(route, index)
+  const lines = [
+    `positions: ${formatPositions(options.positions)},`,
+    `width: ${options.width},`,
+    `speed: ${(options.speed ?? 1).toFixed(2)},`,
+    `repeat: { x: ${route.repeat.x}, y: ${route.repeat.y} },`,
+    ...(image ? [`image: '${image}',`] : []),
+    'clampToGround: true,',
+  ]
+
+  return lines
+    .map((line) => `${prefix}${line}`)
+    .join('\n')
 }
 
 function getFlyLineCode(): string {
@@ -2598,6 +2935,15 @@ function positiveModulo(value: number, divisor: number): number {
 
 function numberValue(input: HTMLInputElement): number {
   return Number(input.value)
+}
+
+function formatSpeedValue(value: number): string {
+  return Number.isInteger(value) ? value.toFixed(1) : value.toFixed(2)
+}
+
+function materialPolylineCustomImageValue(): string | undefined {
+  const value = elements.materialPolylineCustomImage.value.trim()
+  return value.length > 0 ? value : undefined
 }
 
 function getRouteScanMode(): RouteScanMode {

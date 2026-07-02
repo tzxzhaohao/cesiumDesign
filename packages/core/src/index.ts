@@ -23,7 +23,10 @@ import {
   Material,
   Math as CesiumMath,
   PointGraphics,
+  PolylineArrowMaterialProperty,
+  PolylineDashMaterialProperty,
   PolylineGlowMaterialProperty,
+  PolylineOutlineMaterialProperty,
   PolygonGeometry,
   PolygonHierarchy,
   PostProcessStage,
@@ -52,6 +55,8 @@ export const GEO_TEMPERATURE_FIELD_MATERIAL_TYPE = 'GeoTemperatureFieldMaterial'
 
 export const GEO_WATER_SURFACE_MATERIAL_TYPE = 'GeoWaterSurfaceMaterial'
 
+export const GEO_MATERIAL_POLYLINE_MATERIAL_TYPE = 'GeoMaterialPolylineMaterial'
+
 export const RADAR_SCAN_TYPE_VALUES = ['classic', 'sector', 'pulse', 'grid'] as const
 
 export const RIPPLE_SPREAD_TYPE_VALUES = ['water', 'energy', 'soft'] as const
@@ -61,6 +66,33 @@ export const SCENE_WEATHER_TYPE_VALUES = ['rain', 'snow', 'fog', 'lightning'] as
 export const POST_PROCESS_TYPE_VALUES = ['bloom', 'night-vision', 'black-white', 'brightness', 'mosaic', 'depth-of-field'] as const
 
 export const POLYLINE_FLOW_TYPE_VALUES = ['dispatch', 'migration', 'attack', 'comet', 'electric'] as const
+
+export const MATERIAL_POLYLINE_STYLE_VALUES = [
+  'solid',
+  'outline',
+  'arrow',
+  'dash',
+  'dual-dash',
+  'flow',
+  'flow-color',
+  'three-dash',
+  'cross',
+  'navigation',
+] as const
+
+export const MATERIAL_POLYLINE_IMAGE_PRESET_VALUES = [
+  'pulse',
+  'gradual',
+  'arrow-blue',
+  'rainbow',
+  'arrow-repeat',
+  'dovetail',
+  'yellow-flow',
+  'transparent-flow',
+  'interval',
+  'small-arrow',
+  'gradient',
+] as const
 
 export const FLY_LINE_MODE_VALUES = ['single-arc', 'hub-spoke', 'bidirectional'] as const
 
@@ -81,6 +113,10 @@ export type SceneWeatherType = (typeof SCENE_WEATHER_TYPE_VALUES)[number]
 export type PostProcessType = (typeof POST_PROCESS_TYPE_VALUES)[number]
 
 export type PolylineFlowType = (typeof POLYLINE_FLOW_TYPE_VALUES)[number]
+
+export type MaterialPolylineStyle = (typeof MATERIAL_POLYLINE_STYLE_VALUES)[number]
+
+export type MaterialPolylineImagePreset = (typeof MATERIAL_POLYLINE_IMAGE_PRESET_VALUES)[number]
 
 export type FlyLineMode = (typeof FLY_LINE_MODE_VALUES)[number]
 
@@ -286,6 +322,78 @@ export interface PolylineFlowEffectInstance {
   isVisible(): boolean
   isDestroyed(): boolean
   getOptions(): NormalizedPolylineFlowOptions
+}
+
+export type MaterialPolylineImageSource =
+  | string
+  | HTMLImageElement
+  | HTMLCanvasElement
+  | ImageBitmap
+  | OffscreenCanvas
+
+export interface MaterialPolylineRepeat {
+  x?: number
+  y?: number
+}
+
+export interface NormalizedMaterialPolylineRepeat {
+  x: number
+  y: number
+}
+
+export interface MaterialPolylineOptions {
+  positions: GeoEffectPosition[]
+  style?: MaterialPolylineStyle | string
+  color?: string
+  secondaryColor?: string
+  backgroundColor?: string
+  width?: number
+  outlineWidth?: number
+  speed?: number
+  repeat?: MaterialPolylineRepeat
+  imagePreset?: MaterialPolylineImagePreset | string
+  image?: MaterialPolylineImageSource
+  arcHeight?: number
+  arcSamples?: number
+  cornerRadius?: number
+  clampToGround?: boolean
+  visible?: boolean
+}
+
+export interface NormalizedMaterialPolylineOptions {
+  positions: GeoEffectPosition[]
+  style: MaterialPolylineStyle
+  color: string
+  secondaryColor: string
+  backgroundColor: string
+  width: number
+  outlineWidth: number
+  speed: number
+  repeat: NormalizedMaterialPolylineRepeat
+  imagePreset: MaterialPolylineImagePreset
+  image: MaterialPolylineImageSource
+  arcHeight: number
+  arcSamples: number
+  cornerRadius: number
+  clampToGround: boolean
+  visible: boolean
+}
+
+export interface MaterialPolylineFlyToOptions {
+  duration?: number
+  pitch?: number
+  rangeMultiplier?: number
+}
+
+export interface MaterialPolylineEffectInstance {
+  update(options: Partial<MaterialPolylineOptions>): void
+  show(): void
+  hide(): void
+  flyTo(options?: MaterialPolylineFlyToOptions): void
+  destroy(): void
+  isVisible(): boolean
+  isDestroyed(): boolean
+  getOptions(): NormalizedMaterialPolylineOptions
 }
 
 export interface FlyLineRoute {
@@ -712,6 +820,10 @@ export function createPolylineFlowEffect(viewer: Viewer, options: PolylineFlowOp
   return new PolylineFlowEffect(viewer, options)
 }
 
+export function createMaterialPolylineEffect(viewer: Viewer, options: MaterialPolylineOptions): MaterialPolylineEffect {
+  return new MaterialPolylineEffect(viewer, options)
+}
+
 export function createFlyLineEffect(viewer: Viewer, options: FlyLineOptions): FlyLineEffect {
   return new FlyLineEffect(viewer, options)
 }
@@ -813,6 +925,28 @@ export function normalizePolylineFlowOptions(options: PolylineFlowOptions): Norm
     cornerRadius: clamp(finiteOr(options.cornerRadius ?? 0, 0), 0, 0.45),
     glowPower: clamp(finiteOr(options.glowPower ?? 0.22, 0.22), 0, 1),
     taperPower: clamp(finiteOr(options.taperPower ?? 0.72, 0.72), 0, 1),
+    clampToGround: options.clampToGround ?? true,
+    visible: options.visible ?? true,
+  }
+}
+
+export function normalizeMaterialPolylineOptions(options: MaterialPolylineOptions): NormalizedMaterialPolylineOptions {
+  const imagePreset = normalizeMaterialPolylineImagePreset(options.imagePreset)
+  return {
+    positions: normalizePositions(options.positions, false),
+    style: normalizeMaterialPolylineStyle(options.style),
+    color: options.color ?? '#33f7ff',
+    secondaryColor: options.secondaryColor ?? '#ffffff',
+    backgroundColor: options.backgroundColor ?? 'rgba(0, 64, 255, 0.35)',
+    width: Math.max(1, finiteOr(options.width ?? 8, 8)),
+    outlineWidth: Math.max(0, finiteOr(options.outlineWidth ?? 2, 2)),
+    speed: clamp(finiteOr(options.speed ?? 1, 1), 0.05, 8),
+    repeat: normalizeMaterialPolylineRepeat(options.repeat),
+    imagePreset,
+    image: options.image ?? getMaterialPolylinePresetImage(imagePreset),
+    arcHeight: Math.max(0, finiteOr(options.arcHeight ?? 0, 0)),
+    arcSamples: clampInteger(finiteOr(options.arcSamples ?? 48, 48), 2, 128),
+    cornerRadius: clamp(finiteOr(options.cornerRadius ?? 0, 0), 0, 0.45),
     clampToGround: options.clampToGround ?? true,
     visible: options.visible ?? true,
   }
@@ -978,6 +1112,20 @@ export function shouldRebuildPolylineFlow(
 ): boolean {
   return (
     previous.clampToGround !== next.clampToGround ||
+    previous.cornerRadius !== next.cornerRadius ||
+    previous.positions.length !== next.positions.length ||
+    !positionsEqual(previous.positions, next.positions)
+  )
+}
+
+export function shouldRebuildMaterialPolyline(
+  previous: NormalizedMaterialPolylineOptions,
+  next: NormalizedMaterialPolylineOptions,
+): boolean {
+  return (
+    previous.clampToGround !== next.clampToGround ||
+    previous.arcHeight !== next.arcHeight ||
+    previous.arcSamples !== next.arcSamples ||
     previous.cornerRadius !== next.cornerRadius ||
     previous.positions.length !== next.positions.length ||
     !positionsEqual(previous.positions, next.positions)
@@ -1170,6 +1318,54 @@ export function buildRippleSpreadMaterialSource(): string {
       material.diffuse = styleColor * (0.24 + rippleStrength * 0.3 + outerGlow);
       material.emission = styleColor * (rippleStrength * (0.56 + energyEnabled * 0.42) + centerGlow * 0.48);
       material.alpha = opacity * (inside * (0.035 + softEnabled * 0.04) + shimmer + rippleStrength * (0.35 + energyEnabled * 0.24) + centerGlow * 0.18 + outerGlow);
+      return material;
+    }
+  `
+}
+
+export function buildMaterialPolylineMaterialSource(): string {
+  return `
+    // ${GEO_MATERIAL_POLYLINE_MATERIAL_TYPE}
+    czm_material czm_getMaterial(czm_materialInput materialInput)
+    {
+      czm_material material = czm_getDefaultMaterial(materialInput);
+      vec2 st = materialInput.st;
+      float time = fract(czm_frameNumber * 0.016667 * speed);
+      vec2 uv = vec2(fract(st.s * repeatX - time), fract(st.t * repeatY));
+      vec4 textureColor = texture(image, uv);
+      float flowEnabled = step(5.5, styleType) * (1.0 - step(6.5, styleType));
+      float flowColorEnabled = step(6.5, styleType) * (1.0 - step(7.5, styleType));
+      float threeDashEnabled = step(7.5, styleType) * (1.0 - step(8.5, styleType));
+      float crossEnabled = step(8.5, styleType) * (1.0 - step(9.5, styleType));
+      float navigationEnabled = step(9.5, styleType);
+      float dynamicEnabled = max(max(flowEnabled, flowColorEnabled), max(max(threeDashEnabled, crossEnabled), navigationEnabled));
+      float centerDistance = abs(st.t - 0.5);
+      float centerCore = smoothstep(0.18, 0.0, centerDistance);
+      float sideCore = smoothstep(0.08, 0.0, abs(centerDistance - 0.32));
+      float dash = smoothstep(0.68, 0.72, fract(st.s * repeatX - time));
+      float cross = max(
+        smoothstep(0.08, 0.0, centerDistance) * dash,
+        smoothstep(0.022, 0.0, abs(fract(st.s * repeatX - time) - 0.5))
+      );
+      float navCycle = fract(st.s * repeatX - time);
+      float navWhite = smoothstep(0.0, 0.08, navCycle) * (1.0 - smoothstep(0.22, 0.32, navCycle));
+      float navGreen = smoothstep(0.24, 0.34, navCycle) * (1.0 - smoothstep(0.86, 0.96, navCycle));
+      float textureAlpha = textureColor.a;
+      vec3 imageColor = textureColor.rgb;
+      float imageBrightness = max(max(imageColor.r, imageColor.g), imageColor.b);
+      float tintWeight = (1.0 - imageBrightness) * 0.45;
+      vec3 flowImageColor = mix(imageColor, imageColor * color.rgb, tintWeight);
+      vec3 flowColor = flowImageColor * flowEnabled + mix(color.rgb, secondaryColor.rgb, smoothstep(0.0, 1.0, uv.s)) * flowColorEnabled;
+      vec3 threeColor = (color.rgb * centerCore + secondaryColor.rgb * sideCore) * max(centerCore, sideCore) * threeDashEnabled;
+      vec3 crossColor = color.rgb * cross * crossEnabled;
+      vec3 navColor = (secondaryColor.rgb * navWhite + color.rgb * navGreen) * navigationEnabled;
+      vec3 mixed = flowColor + threeColor + crossColor + navColor;
+      float flowColorAlpha = smoothstep(0.02, 0.18, fract(uv.s)) * (1.0 - smoothstep(0.58, 0.98, fract(uv.s)));
+      float patternAlpha = max(max(textureAlpha * flowEnabled + flowColorAlpha * flowColorEnabled, max(centerCore, sideCore) * threeDashEnabled), max(cross * crossEnabled, max(navWhite, navGreen) * navigationEnabled));
+      float backgroundAlpha = backgroundColor.a * dynamicEnabled * (1.0 - patternAlpha) * 0.58;
+      material.diffuse = mix(backgroundColor.rgb, mixed, clamp(patternAlpha + 0.1, 0.0, 1.0));
+      material.emission = mixed * (0.32 + patternAlpha * 0.84);
+      material.alpha = clamp(backgroundAlpha + patternAlpha * color.a, 0.0, 1.0);
       return material;
     }
   `
@@ -3314,6 +3510,230 @@ export class FlyLineEffect implements FlyLineEffectInstance {
   }
 }
 
+export class MaterialPolylineEffect implements MaterialPolylineEffectInstance {
+  private readonly viewer: Viewer
+  private readonly dataSource: CustomDataSource
+  private options: NormalizedMaterialPolylineOptions
+  private routeEntity: Entity | null = null
+  private material: DynamicCesiumMaterialProperty | null = null
+  private renderFrame = 0
+  private destroyed = false
+
+  constructor(viewer: Viewer, options: MaterialPolylineOptions) {
+    this.viewer = viewer
+    this.options = normalizeMaterialPolylineOptions(options)
+    this.dataSource = new CustomDataSource('geo-effect-kit-material-polyline')
+    this.dataSource.show = this.options.visible
+    this.viewer.dataSources.add(this.dataSource)
+    this.renderEntity()
+    this.startRenderLoop()
+    this.viewer.scene.requestRender()
+  }
+
+  update(options: Partial<MaterialPolylineOptions>): void {
+    if (this.destroyed) return
+
+    const nextImage =
+      options.image !== undefined
+        ? options.image
+        : options.imagePreset !== undefined
+          ? normalizeMaterialPolylineOptions({ positions: this.options.positions, imagePreset: options.imagePreset }).image
+          : this.options.image
+    const next = normalizeMaterialPolylineOptions({
+      ...this.options,
+      ...options,
+      positions: options.positions ?? this.options.positions,
+      repeat: options.repeat ?? this.options.repeat,
+      image: nextImage,
+      clampToGround: options.clampToGround ?? this.options.clampToGround,
+      visible: options.visible ?? this.options.visible,
+    })
+    const rebuildEntity = shouldRebuildMaterialPolyline(this.options, next)
+    const materialClassChanged = isNativeMaterialPolylineStyle(this.options.style) !== isNativeMaterialPolylineStyle(next.style)
+    this.options = next
+
+    if (rebuildEntity || materialClassChanged) {
+      this.renderEntity()
+    } else {
+      this.applyEntityOptions()
+    }
+
+    this.dataSource.show = this.options.visible
+    if (this.options.visible) this.startRenderLoop()
+    else this.stopRenderLoop()
+    this.viewer.scene.requestRender()
+  }
+
+  show(): void {
+    if (this.destroyed) return
+    this.options = { ...this.options, visible: true }
+    this.dataSource.show = true
+    this.startRenderLoop()
+    this.viewer.scene.requestRender()
+  }
+
+  hide(): void {
+    if (this.destroyed) return
+    this.options = { ...this.options, visible: false }
+    this.dataSource.show = false
+    this.stopRenderLoop()
+    this.viewer.scene.requestRender()
+  }
+
+  flyTo(options: MaterialPolylineFlyToOptions = {}): void {
+    if (this.destroyed) return
+
+    const { center, radius } = getPositionBounds(this.getRenderPositions(), Math.max(2000, this.options.width * 900))
+    this.viewer.camera.flyToBoundingSphere(new BoundingSphere(center, radius), {
+      duration: options.duration ?? 1,
+      offset: new HeadingPitchRange(0, options.pitch ?? -0.62, radius * (options.rangeMultiplier ?? 2.4)),
+    })
+  }
+
+  destroy(): void {
+    if (this.destroyed) return
+
+    this.destroyed = true
+    this.stopRenderLoop()
+    this.dataSource.entities.removeAll()
+    this.routeEntity = null
+    this.material = null
+    this.viewer.dataSources.remove(this.dataSource, true)
+    this.viewer.scene.requestRender()
+  }
+
+  isVisible(): boolean {
+    return this.options.visible
+  }
+
+  isDestroyed(): boolean {
+    return this.destroyed
+  }
+
+  getOptions(): NormalizedMaterialPolylineOptions {
+    return {
+      ...this.options,
+      positions: clonePositions(this.options.positions),
+      repeat: { ...this.options.repeat },
+    }
+  }
+
+  private renderEntity(): void {
+    clearEntities(this.dataSource)
+    this.material = null
+    const positions = positionsToCartesians(this.getRenderPositions())
+    const material = this.createMaterial()
+
+    this.routeEntity = this.dataSource.entities.add({
+      id: 'geo-effect-kit-material-polyline-route',
+      polyline: {
+        positions,
+        width: this.options.width,
+        clampToGround: this.options.clampToGround && this.options.arcHeight <= 0,
+        material,
+      },
+    })
+  }
+
+  private applyEntityOptions(): void {
+    if (!this.routeEntity?.polyline) return
+
+    this.routeEntity.polyline.width = new ConstantProperty(this.options.width)
+    if (this.material) {
+      this.applyDynamicMaterialUniforms(this.material)
+    } else {
+      this.routeEntity.polyline.material = this.createMaterial()
+    }
+  }
+
+  private createMaterial(): ColorMaterialProperty | PolylineOutlineMaterialProperty | PolylineArrowMaterialProperty | PolylineDashMaterialProperty | DynamicCesiumMaterialProperty {
+    if (this.options.style === 'solid') {
+      return new ColorMaterialProperty(Color.fromCssColorString(this.options.color))
+    }
+
+    if (this.options.style === 'outline') {
+      return new PolylineOutlineMaterialProperty({
+        color: Color.fromCssColorString(this.options.color),
+        outlineColor: Color.fromCssColorString(this.options.secondaryColor),
+        outlineWidth: this.options.outlineWidth,
+      })
+    }
+
+    if (this.options.style === 'arrow') {
+      return new PolylineArrowMaterialProperty(Color.fromCssColorString(this.options.color))
+    }
+
+    if (this.options.style === 'dash' || this.options.style === 'dual-dash') {
+      return new PolylineDashMaterialProperty({
+        color: Color.fromCssColorString(this.options.color),
+        gapColor: Color.fromCssColorString(this.options.style === 'dual-dash' ? this.options.secondaryColor : 'rgba(0, 0, 0, 0)'),
+        dashLength: Math.max(4, this.options.repeat.x * 4),
+        dashPattern: this.options.style === 'dual-dash' ? 0b1111000000 : 255,
+      })
+    }
+
+    registerMaterialPolylineMaterial()
+    const material = new DynamicCesiumMaterialProperty(GEO_MATERIAL_POLYLINE_MATERIAL_TYPE, {})
+    this.material = material
+    this.applyDynamicMaterialUniforms(material)
+    return material
+  }
+
+  private applyDynamicMaterialUniforms(material: DynamicCesiumMaterialProperty): void {
+    material.uniforms.color = Color.fromCssColorString(this.options.color).withAlpha(1)
+    material.uniforms.secondaryColor = Color.fromCssColorString(this.options.secondaryColor).withAlpha(1)
+    material.uniforms.backgroundColor = Color.fromCssColorString(this.options.backgroundColor)
+    material.uniforms.image = this.options.image
+    material.uniforms.speed = this.options.speed
+    material.uniforms.repeatX = this.options.repeat.x
+    material.uniforms.repeatY = this.options.repeat.y
+    material.uniforms.styleType = getMaterialPolylineStyleUniform(this.options.style)
+  }
+
+  private getRenderPositions(): GeoEffectPosition[] {
+    const rounded = roundPolylineCorners(this.options.positions, this.options.cornerRadius)
+    if (this.options.arcHeight <= 0) return rounded
+
+    const result: GeoEffectPosition[] = []
+    for (let index = 1; index < rounded.length; index += 1) {
+      const from = rounded[index - 1]
+      const to = rounded[index]
+      if (!from || !to) continue
+      const segment = sampleFlyLineArc({ from, to }, this.options.arcHeight, this.options.arcSamples)
+      segment.forEach((position, segmentIndex) => {
+        if (index > 1 && segmentIndex === 0) return
+        result.push(position)
+      })
+    }
+    return result.length >= 2 ? result : rounded
+  }
+
+  private startRenderLoop(): void {
+    if (this.renderFrame || !this.options.visible || typeof window === 'undefined') return
+
+    const tick = () => {
+      if (this.destroyed || !this.options.visible) {
+        this.renderFrame = 0
+        return
+      }
+      this.viewer.scene.requestRender()
+      this.renderFrame = window.requestAnimationFrame(tick)
+    }
+
+    this.renderFrame = window.requestAnimationFrame(tick)
+  }
+
+  private stopRenderLoop(): void {
+    if (!this.renderFrame || typeof window === 'undefined') {
+      this.renderFrame = 0
+      return
+    }
+
+    window.cancelAnimationFrame(this.renderFrame)
+    this.renderFrame = 0
+  }
+}
+
 export class PipeFlowEffect implements PipeFlowEffectInstance {
   private readonly viewer: Viewer
   private readonly dataSource: CustomDataSource
@@ -4466,6 +4886,19 @@ function registerWaterSurfaceMaterial(): void {
   }, buildWaterSurfaceMaterialSource())
 }
 
+function registerMaterialPolylineMaterial(): void {
+  registerMaterial(GEO_MATERIAL_POLYLINE_MATERIAL_TYPE, {
+    color: Color.CYAN,
+    secondaryColor: Color.WHITE,
+    backgroundColor: Color.BLUE.withAlpha(0.35),
+    image: getMaterialPolylinePresetImage('pulse'),
+    speed: 1,
+    repeatX: 4,
+    repeatY: 1,
+    styleType: 6,
+  }, buildMaterialPolylineMaterialSource())
+}
+
 function registerMaterial(type: string, uniforms: Record<string, unknown>, source: string): void {
   type MaterialCache = {
     getMaterial: (materialType: string) => unknown
@@ -4505,6 +4938,23 @@ function normalizePostProcessType(type: PostProcessOptions['type']): PostProcess
 
 function normalizePolylineFlowType(type: PolylineFlowOptions['type']): PolylineFlowType {
   return POLYLINE_FLOW_TYPE_VALUES.includes(type as PolylineFlowType) ? (type as PolylineFlowType) : 'dispatch'
+}
+
+function normalizeMaterialPolylineStyle(style: MaterialPolylineOptions['style']): MaterialPolylineStyle {
+  return MATERIAL_POLYLINE_STYLE_VALUES.includes(style as MaterialPolylineStyle) ? (style as MaterialPolylineStyle) : 'flow'
+}
+
+function normalizeMaterialPolylineImagePreset(imagePreset: MaterialPolylineOptions['imagePreset']): MaterialPolylineImagePreset {
+  return MATERIAL_POLYLINE_IMAGE_PRESET_VALUES.includes(imagePreset as MaterialPolylineImagePreset)
+    ? (imagePreset as MaterialPolylineImagePreset)
+    : 'pulse'
+}
+
+function normalizeMaterialPolylineRepeat(repeat: MaterialPolylineOptions['repeat']): NormalizedMaterialPolylineRepeat {
+  return {
+    x: clamp(finiteOr(repeat?.x ?? 4, 4), 1, 64),
+    y: clamp(finiteOr(repeat?.y ?? 1, 1), 1, 16),
+  }
 }
 
 function normalizeFlyLineMode(mode: FlyLineOptions['mode']): FlyLineMode {
@@ -4556,6 +5006,10 @@ function getPostProcessTypeUniform(type: PostProcessType): number {
   return 6
 }
 
+function getMaterialPolylineStyleUniform(style: MaterialPolylineStyle): number {
+  return MATERIAL_POLYLINE_STYLE_VALUES.indexOf(style) + 1
+}
+
 function getLightWallTypeUniform(type: LightWallType): number {
   if (type === 'security') return 1
   if (type === 'warning') return 2
@@ -4585,6 +5039,58 @@ function getWaterSurfaceTypeUniform(type: WaterSurfaceType): number {
   if (type === 'lake') return 2
   if (type === 'flood') return 3
   return 4
+}
+
+function isNativeMaterialPolylineStyle(style: MaterialPolylineStyle): boolean {
+  return style === 'solid' || style === 'outline' || style === 'arrow' || style === 'dash' || style === 'dual-dash'
+}
+
+function getMaterialPolylinePresetImage(imagePreset: MaterialPolylineImagePreset): string {
+  const presets: Record<MaterialPolylineImagePreset, string> = {
+    pulse: createMaterialPolylineTextureDataUrl('pulse', '#ffffff', '#00ff66'),
+    gradual: createMaterialPolylineTextureDataUrl('gradual', '#e8fff5', '#66bd63'),
+    'arrow-blue': createMaterialPolylineTextureDataUrl('arrow-blue', '#ffffff', '#1f78ff'),
+    rainbow: createMaterialPolylineTextureDataUrl('rainbow', '#ff4d4d', '#42e8ff'),
+    'arrow-repeat': createMaterialPolylineTextureDataUrl('arrow-repeat', '#d9ffff', '#00d4ff'),
+    dovetail: createMaterialPolylineTextureDataUrl('dovetail', '#e9ffd8', '#a6d96a'),
+    'yellow-flow': createMaterialPolylineTextureDataUrl('yellow-flow', '#f2ff6a', '#95ff2f'),
+    'transparent-flow': createMaterialPolylineTextureDataUrl('transparent-flow', '#59f9ff', '#0bfbff'),
+    interval: createMaterialPolylineTextureDataUrl('interval', '#ffffff', '#59f9ff'),
+    'small-arrow': createMaterialPolylineTextureDataUrl('small-arrow', '#ffffff', '#33f7ff'),
+    gradient: createMaterialPolylineTextureDataUrl('gradient', '#ffffff', '#33f7ff'),
+  }
+  return presets[imagePreset]
+}
+
+function createMaterialPolylineTextureDataUrl(kind: MaterialPolylineImagePreset, first: string, second: string): string {
+  const svg = getMaterialPolylineTextureSvg(kind, first, second)
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`
+}
+
+function getMaterialPolylineTextureSvg(kind: MaterialPolylineImagePreset, first: string, second: string): string {
+  if (kind === 'rainbow') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="128" height="16" viewBox="0 0 128 16"><linearGradient id="g" x1="0" x2="1"><stop stop-color="#ff2347"/><stop offset=".25" stop-color="#ffec3d"/><stop offset=".5" stop-color="#4dff73"/><stop offset=".75" stop-color="#42e8ff"/><stop offset="1" stop-color="#b34dff"/></linearGradient><rect width="128" height="16" fill="none"/><path d="M0 8H128" stroke="url(#g)" stroke-width="11" stroke-linecap="round"/></svg>`
+  }
+  if (kind === 'arrow-blue' || kind === 'arrow-repeat' || kind === 'small-arrow') {
+    const repeat = kind === 'small-arrow' ? 'M16 3l10 5-10 5V9H0V7h16z M48 3l10 5-10 5V9H32V7h16z M80 3l10 5-10 5V9H64V7h16z' : 'M42 2l22 6-22 6V9H0V7h42z M106 2l22 6-22 6V9H64V7h42z'
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="128" height="16" viewBox="0 0 128 16"><rect width="128" height="16" fill="none"/><path d="${repeat}" fill="${second}" opacity=".95"/><path d="M0 8H128" stroke="${first}" stroke-width="2" opacity=".55"/></svg>`
+  }
+  if (kind === 'dovetail') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="128" height="16" viewBox="0 0 128 16"><rect width="128" height="16" fill="none"/><path d="M0 2h38l10 6-10 6H0l10-6z M64 2h38l10 6-10 6H64l10-6z" fill="${second}" opacity=".88"/><path d="M0 8H128" stroke="${first}" stroke-width="2" opacity=".45"/></svg>`
+  }
+  if (kind === 'interval') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="128" height="16" viewBox="0 0 128 16"><rect width="128" height="16" fill="none"/><path d="M0 8H18M32 8H50M64 8H82M96 8H114" stroke="${first}" stroke-width="8" stroke-linecap="round"/><path d="M18 8H32M50 8H64M82 8H96M114 8H128" stroke="${second}" stroke-width="4" stroke-linecap="round" opacity=".82"/></svg>`
+  }
+  if (kind === 'gradient') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="128" height="16" viewBox="0 0 128 16"><linearGradient id="g" x1="0" x2="1"><stop stop-color="${second}" stop-opacity="0"/><stop offset=".55" stop-color="${second}" stop-opacity=".86"/><stop offset="1" stop-color="${first}"/></linearGradient><rect width="128" height="16" fill="none"/><path d="M0 8H128" stroke="url(#g)" stroke-width="10" stroke-linecap="round"/></svg>`
+  }
+  if (kind === 'transparent-flow') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="128" height="16" viewBox="0 0 128 16"><linearGradient id="g" x1="0" x2="1"><stop stop-color="${second}" stop-opacity="0"/><stop offset=".45" stop-color="${second}" stop-opacity=".35"/><stop offset="1" stop-color="${first}" stop-opacity=".95"/></linearGradient><rect width="128" height="16" fill="none"/><path d="M0 8H128" stroke="url(#g)" stroke-width="9" stroke-linecap="round"/></svg>`
+  }
+  if (kind === 'yellow-flow') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="128" height="16" viewBox="0 0 128 16"><rect width="128" height="16" fill="none"/><path d="M0 8H128" stroke="${second}" stroke-width="9" stroke-linecap="round" opacity=".72"/><path d="M64 8H128" stroke="${first}" stroke-width="5" stroke-linecap="round"/></svg>`
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="128" height="16" viewBox="0 0 128 16"><linearGradient id="g" x1="0" x2="1"><stop stop-color="${second}" stop-opacity="0"/><stop offset=".62" stop-color="${second}" stop-opacity=".78"/><stop offset="1" stop-color="${first}"/></linearGradient><rect width="128" height="16" fill="none"/><path d="M0 8H128" stroke="url(#g)" stroke-width="10" stroke-linecap="round"/><circle cx="108" cy="8" r="5" fill="${first}"/></svg>`
 }
 
 function getPolylineFlowColor(type: PolylineFlowType, color: string): Color {

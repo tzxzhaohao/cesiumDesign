@@ -36,6 +36,7 @@ const effectFiles: Record<string, string> = {
   'scene-weather': path.join(effectsDir, 'scene-weather.effect.json'),
   'post-process': path.join(effectsDir, 'post-process.effect.json'),
   'polyline-flow': path.join(effectsDir, 'polyline-flow.effect.json'),
+  'material-polyline': path.join(effectsDir, 'material-polyline.effect.json'),
   'fly-line': path.join(effectsDir, 'fly-line.effect.json'),
   'pipe-flow': path.join(effectsDir, 'pipe-flow.effect.json'),
   'water-surface': path.join(effectsDir, 'water-surface.effect.json'),

@@ -8,7 +8,7 @@ Framework-neutral Cesium effects for WebGIS dashboards, emergency command system
 
 - Works with an existing Cesium `Viewer`.
 - Framework-neutral TypeScript API.
-- Reusable effects for radar scans, ripple spread, fly lines, pipe flow, water surfaces, light walls, scan cones, shield domes, temperature fields, GIF fire billboards, scene weather, post-processing, and route flow.
+- Reusable effects for radar scans, ripple spread, route flow, material polylines, fly lines, pipe flow, water surfaces, light walls, scan cones, shield domes, temperature fields, GIF fire billboards, scene weather, and post-processing.
 - Common lifecycle API: `update`, `show`, `hide`, `flyTo`, `destroy`.
 - Machine-readable manifests for AI agents.
 - Optional MCP server for effect discovery and integration examples.
@@ -50,6 +50,7 @@ radar.destroy()
 | Radar scan | `createRadarScanEffect` | Circular radar and warning scans |
 | Ripple spread | `createRippleSpreadEffect` | Water, energy, and soft ripple expansion |
 | Polyline flow | `createPolylineFlowEffect` | Dispatch routes, data links, migration paths |
+| Material polyline | `createMaterialPolylineEffect` | Mars3D-style solid, outline, arrow, dash, texture, cross, and navigation lines with custom image materials |
 | Fly line | `createFlyLineEffect` | High-altitude arcs, hub-spoke links, bidirectional routes |
 | Pipe flow | `createPipeFlowEffect` | Water pipes and pressure flow |
 | Water surface | `createWaterSurfaceEffect` | Rivers, lakes, flood surfaces, and directional Flow Type water |
