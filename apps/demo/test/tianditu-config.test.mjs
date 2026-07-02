@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { readFileSync, statSync } from 'node:fs'
 import { parseTiandituAdministrativePolygons } from '../src/temperature-field-data.ts'
 
 test('demo configures Tianditu imagery from an ignored local env token', () => {
@@ -117,32 +117,48 @@ test('demo exposes material-polyline with custom image controls and generated co
     source.indexOf('function getMaterialPolylineCode'),
     source.indexOf('function getFlyLineCode'),
   )
+  const materialPolylineRouteBlock = source.slice(
+    source.indexOf('const materialPolylineShowcaseRoutes'),
+    source.indexOf('const materialPolylinePrimaryRoute'),
+  )
 
   assert.match(html, /data-effect="material-polyline"/)
   assert.match(html, /id="materialPolylineCustomImage"/)
   assert.match(html, /Custom image URL/)
+  assert.match(html, /id="materialPolylineShowcase"/)
+  assert.match(html, /Show style showcase/)
   assert.doesNotMatch(html, /id="materialPolylineStyle"/)
   assert.doesNotMatch(html, /id="materialPolylineImagePreset"/)
-  assert.doesNotMatch(html, /id="materialPolylineShowcase"/)
   assert.doesNotMatch(html, /Material style/)
   assert.doesNotMatch(html, /Image preset/)
-  assert.doesNotMatch(html, /Show style showcase/)
   assert.match(source, /createMaterialPolylineEffect/)
   assert.match(source, /materialPolylineCustomImage/)
+  assert.match(source, /materialPolylineShowcase/)
   assert.match(source, /getVisibleMaterialPolylineRoutes/)
   assert.match(source, /const materialPolylinePrimaryRoute = materialPolylineShowcaseRoutes\[0\]/)
-  assert.match(source, /return \[materialPolylinePrimaryRoute\]/)
   assert.doesNotMatch(source, /materialPolylineStyle:/)
   assert.doesNotMatch(source, /materialPolylineImagePreset:/)
   assert.doesNotMatch(source, /materialPolylineStyleField/)
   assert.doesNotMatch(source, /materialPolylineImagePresetField/)
-  assert.doesNotMatch(source, /materialPolylineShowcase:/)
-  assert.doesNotMatch(source, /materialPolylineShowcaseField/)
-  assert.match(materialPolylineCopyBlock, /single editable custom image URL/)
-  assert.match(materialPolylineCopyBlock, /only editable field is the custom image URL/)
-  assert.doesNotMatch(materialPolylineCopyBlock, /Show style showcase/)
+  assert.match(source, /materialPolylineShowcase:/)
+  assert.match(source, /materialPolylineShowcaseField/)
+  assert.match(materialPolylineCopyBlock, /custom URL, local texture, and canvas material examples/)
+  assert.match(materialPolylineCopyBlock, /Show style showcase/)
+  assert.match(materialPolylineCopyBlock, /11 Mars3D official image materials/)
+  assert.match(materialPolylineCopyBlock, /\/textures\/material-polyline\/neon-weave\.png/)
+  assert.match(html, /placeholder="\/textures\/material-polyline\/neon-weave\.png"/)
   assert.doesNotMatch(materialPolylineCopyBlock, /Material style/)
   assert.doesNotMatch(materialPolylineCopyBlock, /Image preset/)
+  assert.match(source, /localMaterialPolylineTextures/)
+  assert.match(source, /\/textures\/material-polyline\/neon-weave\.png/)
+  assert.match(source, /\/textures\/material-polyline\/aurora-comet\.png/)
+  assert.match(source, /\/textures\/material-polyline\/ember-signal\.png/)
+  assert.doesNotMatch(source, /createLocalMaterialPolylineTextureDataUrl/)
+  assert.match(source, /createMaterialPolylineCanvasTexture/)
+  assert.match(source, /type MaterialPolylineCanvasTextureKind = 'prism-lane' \| 'signal-braid'/)
+  assert.match(source, /imageKind: 'mars3d'/)
+  assert.match(source, /imageKind: 'local'/)
+  assert.match(source, /imageKind: 'canvas'/)
   for (const texture of [
     'line-pulse.png',
     'line-gradual.png',
@@ -158,19 +174,30 @@ test('demo exposes material-polyline with custom image controls and generated co
   ]) {
     assert.equal(source.includes(`https://data.mars3d.cn/img/textures/${texture}`), true)
   }
+  assert.equal((materialPolylineRouteBlock.match(/imageKind: 'mars3d'/g) ?? []).length, 11)
+  assert.ok((materialPolylineRouteBlock.match(/imageKind: 'local'/g) ?? []).length >= 3)
+  assert.ok((materialPolylineRouteBlock.match(/imageKind: 'canvas'/g) ?? []).length >= 2)
   assert.match(source, /getMaterialPolylineRouteImage/)
-  assert.match(source, /return index === 0 \? customImage \?\? route\.image : route\.image/)
+  assert.match(source, /if \(index === 0 && customImage\) return customImage/)
+  assert.match(source, /if \(route\.imageFactory\) return route\.imageFactory\(\)/)
+  assert.match(source, /return route\.image/)
   assert.match(source, /function getMaterialPolylineRouteOptions/)
   assert.match(source, /style: route\.style/)
   assert.match(source, /color: route\.color/)
   assert.doesNotMatch(source, /imagePreset: route\.imagePreset/)
   assert.doesNotMatch(source, /function getMaterialPolylineShowcaseCode/)
-  assert.doesNotMatch(source, /const materialLineOptions = \[/)
   assert.match(source, /getMaterialPolylineCode/)
-  assert.match(source, /'material-polyline': \['materialPolylineCustomImageField'\]/)
+  assert.match(source, /'material-polyline': \['materialPolylineCustomImageField', 'widthField', 'speedField', 'cornerRadiusField', 'materialPolylineShowcaseField'\]/)
   assert.match(source, /formatMaterialPolylineOptions\(route, 0, routeImage, 2\)/)
   assert.doesNotMatch(source, /formatMaterialPolylineOptions\(route, 0, routeImage, 2, \{ compact: true \}\)/)
+  assert.match(materialPolylineUsageBlock, /materialLineOptions = \[/)
+  assert.match(materialPolylineUsageBlock, /materialLines = materialLineOptions\.map/)
+  assert.match(materialPolylineUsageBlock, /materialLines\[0\]\?\.flyTo\(\)/)
+  assert.match(materialPolylineUsageBlock, /materialLines\.forEach/)
   assert.match(materialPolylineUsageBlock, /image: '\$\{image\}'/)
+  assert.match(materialPolylineUsageBlock, /cornerRadius: \$\{.*?toFixed\(2\)\}/)
+  assert.match(materialPolylineUsageBlock, /getMaterialPolylineCanvasTextureCode/)
+  assert.match(materialPolylineUsageBlock, /createMaterialPolylineCanvasTexture\('\$\{route\.canvasKind\}'\)/)
   assert.doesNotMatch(materialPolylineUsageBlock, /style:/)
   assert.doesNotMatch(materialPolylineUsageBlock, /color:/)
   assert.doesNotMatch(materialPolylineUsageBlock, /secondaryColor:/)
@@ -179,7 +206,7 @@ test('demo exposes material-polyline with custom image controls and generated co
   assert.doesNotMatch(materialPolylineUsageBlock, /imagePreset:/)
 })
 
-test('material-polyline Mars3D image routes stay fixed behind the single URL control', () => {
+test('material-polyline showcase keeps Mars3D image routes plus local and canvas texture routes', () => {
   const source = readFileSync(new URL('../src/main.ts', import.meta.url), 'utf8')
   const routeBlock = source.slice(
     source.indexOf('const materialPolylineShowcaseRoutes'),
@@ -187,7 +214,17 @@ test('material-polyline Mars3D image routes stay fixed behind the single URL con
   )
 
   assert.equal((routeBlock.match(/image: mars3dMaterialPolylineTextures\./g) ?? []).length, 11)
-  assert.equal((routeBlock.match(/style: 'flow'/g) ?? []).length, 11)
+  assert.equal((routeBlock.match(/imageKind: 'mars3d'/g) ?? []).length, 11)
+  assert.ok((routeBlock.match(/image: localMaterialPolylineTextures\./g) ?? []).length >= 3)
+  assert.ok((routeBlock.match(/imageFactory: \(\) => createMaterialPolylineCanvasTexture/g) ?? []).length >= 2)
+  assert.match(routeBlock, /name: 'local-neon-weave'/)
+  assert.match(routeBlock, /name: 'local-aurora-comet'/)
+  assert.match(routeBlock, /name: 'local-ember-signal'/)
+  assert.match(routeBlock, /name: 'canvas-prism-lane'/)
+  assert.match(routeBlock, /canvasKind: 'prism-lane'/)
+  assert.match(routeBlock, /name: 'canvas-signal-braid'/)
+  assert.match(routeBlock, /canvasKind: 'signal-braid'/)
+  assert.equal((routeBlock.match(/style: 'flow'/g) ?? []).length, 11 + 3 + 2)
   assert.doesNotMatch(routeBlock, /style: 'navigation'/)
   assert.doesNotMatch(routeBlock, /style: 'cross'/)
   assert.doesNotMatch(routeBlock, /style: 'three-dash'/)
@@ -200,16 +237,21 @@ test('material-polyline Mars3D image routes stay fixed behind the single URL con
   assert.doesNotMatch(optionsBlock, /elements\.materialPolylineStyle/)
   assert.doesNotMatch(optionsBlock, /elements\.materialPolylineImagePreset/)
   assert.doesNotMatch(optionsBlock, /elements\.color/)
-  assert.doesNotMatch(optionsBlock, /numberValue\(elements\.width\)/)
-  assert.doesNotMatch(optionsBlock, /numberValue\(elements\.speed\)/)
-  assert.doesNotMatch(optionsBlock, /numberValue\(elements\.cornerRadius\)/)
-  assert.doesNotMatch(optionsBlock, /materialPolylineShowcase/)
+  assert.match(optionsBlock, /numberValue\(elements\.width\)/)
+  assert.match(optionsBlock, /numberValue\(elements\.speed\)/)
+  assert.match(optionsBlock, /numberValue\(elements\.cornerRadius\)/)
   assert.match(optionsBlock, /style: route\.style/)
   assert.match(optionsBlock, /color: route\.color/)
-  assert.match(optionsBlock, /width: route\.width/)
-  assert.match(optionsBlock, /speed: 1/)
+  assert.match(optionsBlock, /width: index === 0 \? numberValue\(elements\.width\) : route\.width/)
+  assert.match(optionsBlock, /speed: numberValue\(elements\.speed\)/)
   assert.doesNotMatch(optionsBlock, /imagePreset/)
-  assert.match(optionsBlock, /cornerRadius: 0\.12/)
+  assert.match(optionsBlock, /cornerRadius: index === 0 \? numberValue\(elements\.cornerRadius\) : route\.cornerRadius/)
+
+  for (const texture of ['neon-weave.png', 'aurora-comet.png', 'ember-signal.png']) {
+    const stats = statSync(new URL(`../public/textures/material-polyline/${texture}`, import.meta.url))
+    assert.equal(stats.isFile(), true)
+    assert.ok(stats.size > 1000, `${texture} should be a non-empty local texture asset`)
+  }
 })
 
 test('demo HUD controls avoid horizontal overflow', () => {
