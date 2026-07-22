@@ -40,6 +40,21 @@ import {
   type Viewer,
 } from 'cesium'
 import { decompressFrames, parseGIF, type ParsedFrame } from 'gifuct-js'
+import { normalizeScanConeExpansionOptions } from './scan-cone-expansion.js'
+import type {
+  NormalizedScanConeExpansionOptions,
+  ScanConeExpansionFrame,
+  ScanConeExpansionOptions,
+  ScanConeExpansionState,
+  ScanConeExpansionStatus,
+} from './scan-cone-expansion.js'
+
+export type {
+  ScanConeExpansionFrame,
+  ScanConeExpansionOptions,
+  ScanConeExpansionState,
+  ScanConeExpansionStatus,
+} from './scan-cone-expansion.js'
 
 export const GEO_RADAR_SCAN_MATERIAL_TYPE = 'GeoRadarScanMaterial'
 
@@ -547,6 +562,7 @@ export interface ScanConeOptions {
   pitch?: number
   showOrigin?: boolean
   visible?: boolean
+  expansion?: ScanConeExpansionOptions
 }
 
 export interface NormalizedScanConeOptions {
@@ -562,6 +578,7 @@ export interface NormalizedScanConeOptions {
   pitch: number
   showOrigin: boolean
   visible: boolean
+  expansion?: NormalizedScanConeExpansionOptions
 }
 
 export interface ScanConeFlyToOptions {
@@ -1013,6 +1030,7 @@ export function normalizeScanConeOptions(options: ScanConeOptions): NormalizedSc
     pitch: finiteOr(options.pitch ?? 0, 0),
     showOrigin: options.showOrigin ?? true,
     visible: options.visible ?? true,
+    ...(options.expansion ? { expansion: normalizeScanConeExpansionOptions(options.expansion) } : {}),
   }
 }
 

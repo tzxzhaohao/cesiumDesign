@@ -8,6 +8,10 @@ import {
   normalizeScanConeOptions,
   shouldRebuildScanCone,
 } from '../dist/index.js'
+import {
+  normalizeScanConeExpansionOptions,
+  sampleScanConeExpansionFrame,
+} from '../dist/scan-cone-expansion.js'
 
 globalThis.HTMLCanvasElement ??= class HTMLCanvasElement {}
 globalThis.HTMLImageElement ??= class HTMLImageElement {}
@@ -15,6 +19,72 @@ globalThis.ImageBitmap ??= class ImageBitmap {}
 globalThis.OffscreenCanvas ??= class OffscreenCanvas {}
 
 const center = { longitude: 116.391, latitude: 39.907 }
+
+test('normalizeScanConeExpansionOptions applies safe defaults and preserves callbacks', () => {
+  const onFrame = () => {}
+  const onComplete = () => {}
+  const defaults = normalizeScanConeExpansionOptions({ maxRadiusMeters: Number.NaN })
+  const options = normalizeScanConeExpansionOptions({
+    maxRadiusMeters: -1,
+    durationMs: Number.POSITIVE_INFINITY,
+    cameraFollow: true,
+    autoStart: false,
+    onFrame,
+    onComplete,
+  })
+
+  assert.equal(defaults.maxRadiusMeters, 1)
+  assert.equal(defaults.durationMs, 4500)
+  assert.equal(defaults.cameraFollow, false)
+  assert.equal(defaults.autoStart, true)
+  assert.equal(options.maxRadiusMeters, 1)
+  assert.equal(options.durationMs, 4500)
+  assert.equal(options.cameraFollow, true)
+  assert.equal(options.autoStart, false)
+  assert.equal(options.onFrame, onFrame)
+  assert.equal(options.onComplete, onComplete)
+  assert.equal(normalizeScanConeExpansionOptions({ maxRadiusMeters: 2, durationMs: 1 }).durationMs, 100)
+  assert.equal(normalizeScanConeExpansionOptions({ maxRadiusMeters: 2, durationMs: 120001 }).durationMs, 120000)
+})
+
+test('normalizeScanConeOptions only normalizes expansion when configured', () => {
+  assert.equal(normalizeScanConeOptions({ center }).expansion, undefined)
+  assert.deepEqual(normalizeScanConeOptions({
+    center,
+    expansion: { maxRadiusMeters: 120, durationMs: 700 },
+  }).expansion, {
+    maxRadiusMeters: 120,
+    durationMs: 700,
+    cameraFollow: false,
+    autoStart: true,
+  })
+})
+
+test('sampleScanConeExpansionFrame shares cubic easing between radius and length', () => {
+  const options = normalizeScanConeExpansionOptions({
+    maxRadiusMeters: 200,
+    durationMs: 1000,
+  })
+
+  assert.deepEqual(sampleScanConeExpansionFrame(options, 600, -1), {
+    progress: 0,
+    radiusMeters: 0,
+    lengthMeters: 0,
+    elapsedMs: 0,
+  })
+  assert.deepEqual(sampleScanConeExpansionFrame(options, 600, 500), {
+    progress: 0.5,
+    radiusMeters: 100,
+    lengthMeters: 300,
+    elapsedMs: 500,
+  })
+  assert.deepEqual(sampleScanConeExpansionFrame(options, 600, Number.POSITIVE_INFINITY), {
+    progress: 1,
+    radiusMeters: 200,
+    lengthMeters: 600,
+    elapsedMs: 1000,
+  })
+})
 
 test('normalizeScanConeOptions fills rotating searchlight defaults', () => {
   const options = normalizeScanConeOptions({
