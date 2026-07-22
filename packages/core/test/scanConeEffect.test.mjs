@@ -445,6 +445,141 @@ test('ScanConeEffect expansion ignores backward timestamps and completes callbac
   }
 })
 
+test('ScanConeEffect keeps one animation frame when onFrame hides and shows the effect', () => {
+  const raf = installRafHarness()
+  try {
+    let effect
+    let toggled = false
+    effect = createScanConeEffect(createMockViewer(), {
+      center,
+      expansion: {
+        maxRadiusMeters: 200,
+        durationMs: 1000,
+        onFrame: () => {
+          if (toggled) return
+          toggled = true
+          effect.hide()
+          effect.show()
+        },
+      },
+    })
+
+    assert.equal(raf.pendingCount(), 1)
+    raf.step(100)
+    assert.equal(raf.pendingCount(), 1)
+  } finally {
+    raf.restore()
+  }
+})
+
+test('ScanConeEffect does not schedule another animation frame when onFrame destroys the effect', () => {
+  const raf = installRafHarness()
+  try {
+    let effect
+    effect = createScanConeEffect(createMockViewer(), {
+      center,
+      expansion: {
+        maxRadiusMeters: 200,
+        durationMs: 1000,
+        onFrame: () => effect.destroy(),
+      },
+    })
+
+    raf.step(100)
+    assert.equal(effect.isDestroyed(), true)
+    assert.equal(raf.pendingCount(), 0)
+  } finally {
+    raf.restore()
+  }
+})
+
+test('ScanConeEffect completes both runs when final onFrame restarts expansion', () => {
+  const raf = installRafHarness()
+  try {
+    let effect
+    let completedFrames = 0
+    let completions = 0
+    effect = createScanConeEffect(createMockViewer(), {
+      center,
+      expansion: {
+        maxRadiusMeters: 200,
+        durationMs: 1000,
+        onFrame: state => {
+          if (state.status !== 'completed') return
+          completedFrames += 1
+          if (completedFrames === 1) effect.restartExpansion()
+        },
+        onComplete: () => { completions += 1 },
+      },
+    })
+
+    raf.step(0)
+    raf.step(1000)
+    assert.equal(completions, 1)
+    assert.equal(effect.getExpansionState().status, 'running')
+    raf.step(2000)
+    raf.step(3000)
+    assert.equal(completedFrames, 2)
+    assert.equal(completions, 2)
+    assert.equal(effect.getExpansionState().status, 'completed')
+  } finally {
+    raf.restore()
+  }
+})
+
+test('ScanConeEffect getOptions returns an isolated expansion snapshot', () => {
+  const effect = createScanConeEffect(createMockViewer(), {
+    center,
+    expansion: { maxRadiusMeters: 200, durationMs: 1000 },
+  })
+
+  const snapshot = effect.getOptions()
+  snapshot.expansion.maxRadiusMeters = 900
+  snapshot.expansion.durationMs = 9000
+
+  assert.equal(effect.getOptions().expansion.maxRadiusMeters, 200)
+  assert.equal(effect.getOptions().expansion.durationMs, 1000)
+})
+
+test('ScanConeEffect mutates one model matrix once per frame while preserving a pitched cone pivot', () => {
+  const raf = installRafHarness()
+  try {
+    const viewer = createMockViewer()
+    createScanConeEffect(viewer, {
+      center,
+      heading: 37,
+      pitch: -23,
+      lengthMeters: 600,
+      expansion: { maxRadiusMeters: 200, durationMs: 1000 },
+    })
+    const primitive = viewer.scene.primitives.values[0]
+    const originalMatrix = primitive.modelMatrix
+    const initialMatrix = Matrix4.clone(originalMatrix)
+    let currentMatrix = originalMatrix
+    let matrixReplacements = 0
+    Object.defineProperty(primitive, 'modelMatrix', {
+      configurable: true,
+      get: () => currentMatrix,
+      set: value => {
+        matrixReplacements += 1
+        currentMatrix = value
+      },
+    })
+
+    raf.step(100)
+    raf.step(600)
+
+    assert.equal(primitive.modelMatrix, originalMatrix)
+    assert.equal(matrixReplacements, 0)
+    assert.equal(Matrix4.equals(primitive.modelMatrix, initialMatrix), false)
+    assertModelScale(primitive.modelMatrix, [100, 100, 300])
+    assertModelBottomAtCenter(primitive.modelMatrix, center)
+    assert.equal(viewer.scene.primitives.addCount, 1)
+  } finally {
+    raf.restore()
+  }
+})
+
 test('ScanConeEffect updates an expansion primitive in place, restarts dimensional changes, and cleans mode switches', () => {
   const raf = installRafHarness()
   try {

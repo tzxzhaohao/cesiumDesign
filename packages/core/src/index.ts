@@ -4235,6 +4235,11 @@ export class ScanConeEffect implements ScanConeEffectInstance {
   private originEntity: Entity | null = null
   private material: DynamicCesiumMaterialProperty | null = null
   private primitiveMaterial: Material | null = null
+  private readonly primitiveOriginScratch = new Cartesian3()
+  private readonly primitiveHeadingPitchRollScratch = new HeadingPitchRoll()
+  private readonly primitiveModelMatrixScratch = new Matrix4()
+  private readonly primitiveScaleScratch = new Cartesian3()
+  private readonly primitiveTranslationScratch = new Cartesian3()
   private expansionState: ScanConeExpansionState = createInitialScanConeExpansionState('idle')
   private expansionPreviousTimestamp: number | null = null
   private pausedByVisibility = false
@@ -4384,6 +4389,7 @@ export class ScanConeEffect implements ScanConeEffectInstance {
     return {
       ...this.options,
       center: { ...this.options.center },
+      ...(this.options.expansion ? { expansion: { ...this.options.expansion } } : {}),
     }
   }
 
@@ -4486,8 +4492,14 @@ export class ScanConeEffect implements ScanConeEffectInstance {
     if (this.originEntity.point) this.originEntity.point.color = new ConstantProperty(color)
   }
 
-  private getOriginCartesian(): Cartesian3 {
-    return Cartesian3.fromDegrees(this.options.center.longitude, this.options.center.latitude, this.options.center.height ?? 0)
+  private getOriginCartesian(result?: Cartesian3): Cartesian3 {
+    return Cartesian3.fromDegrees(
+      this.options.center.longitude,
+      this.options.center.latitude,
+      this.options.center.height ?? 0,
+      undefined,
+      result,
+    )
   }
 
   private getConeCenterCartesian(): Cartesian3 {
@@ -4508,15 +4520,17 @@ export class ScanConeEffect implements ScanConeEffectInstance {
     if (this.renderFrame || !this.options.visible || typeof window === 'undefined') return
 
     const tick = (timestamp: number) => {
+      this.renderFrame = 0
       if (this.destroyed || !this.options.visible) {
-        this.renderFrame = 0
         return
       }
-      this.advanceExpansion(timestamp)
-      if (this.primitiveMaterial) this.primitiveMaterial.uniforms.timeSeconds = timestamp / 1000
-      if (this.conePrimitive) this.updatePrimitiveModelMatrix(timestamp / 1000)
+      const animationSeconds = Number.isFinite(timestamp) ? timestamp / 1000 : 0
+      if (this.primitiveMaterial) this.primitiveMaterial.uniforms.timeSeconds = animationSeconds
+      const modelMatrixUpdated = this.advanceExpansion(timestamp)
+      if (this.destroyed || !this.options.visible) return
+      if (this.conePrimitive && !modelMatrixUpdated) this.updatePrimitiveModelMatrix(animationSeconds)
       this.viewer.scene.requestRender()
-      this.renderFrame = window.requestAnimationFrame(tick)
+      if (!this.renderFrame) this.renderFrame = window.requestAnimationFrame(tick)
     }
 
     this.renderFrame = window.requestAnimationFrame(tick)
@@ -4550,9 +4564,9 @@ export class ScanConeEffect implements ScanConeEffectInstance {
     this.completionNotified = false
   }
 
-  private advanceExpansion(timestamp: number): void {
+  private advanceExpansion(timestamp: number): boolean {
     const expansion = this.options.expansion
-    if (!expansion || this.expansionState.status !== 'running') return
+    if (!expansion || this.expansionState.status !== 'running') return false
 
     const safeTimestamp = Number.isFinite(timestamp) ? timestamp : 0
     const previousTimestamp = this.expansionPreviousTimestamp
@@ -4572,11 +4586,11 @@ export class ScanConeEffect implements ScanConeEffectInstance {
     }
     this.updatePrimitiveModelMatrix(safeTimestamp / 1000)
     const callbackState = { ...this.expansionState }
+    const notifyCompletion = completed && !this.completionNotified
+    if (notifyCompletion) this.completionNotified = true
     expansion.onFrame?.(callbackState)
-    if (completed && !this.completionNotified) {
-      this.completionNotified = true
-      expansion.onComplete?.({ ...callbackState })
-    }
+    if (notifyCompletion) expansion.onComplete?.({ ...callbackState })
+    return true
   }
 
   private pauseExpansionForVisibility(): void {
@@ -4593,21 +4607,30 @@ export class ScanConeEffect implements ScanConeEffectInstance {
     this.pausedByVisibility = false
   }
 
-  private createPrimitiveModelMatrix(animationSeconds: number): Matrix4 {
+  private createPrimitiveModelMatrix(
+    animationSeconds: number,
+    result: Matrix4 = this.primitiveModelMatrixScratch,
+  ): Matrix4 {
     const heading = this.options.heading + animationSeconds * this.options.speed * 36
-    const frame = Transforms.headingPitchRollToFixedFrame(
-      this.getOriginCartesian(),
-      HeadingPitchRoll.fromDegrees(heading, this.options.pitch, 0),
+    HeadingPitchRoll.fromDegrees(heading, this.options.pitch, 0, this.primitiveHeadingPitchRollScratch)
+    Transforms.headingPitchRollToFixedFrame(
+      this.getOriginCartesian(this.primitiveOriginScratch),
+      this.primitiveHeadingPitchRollScratch,
+      undefined,
+      undefined,
+      result,
     )
     const radius = Math.max(0.000001, this.expansionState.radiusMeters)
     const length = Math.max(0.000001, this.expansionState.lengthMeters)
-    Matrix4.multiplyByTranslation(frame, new Cartesian3(0, 0, length / 2), frame)
-    return Matrix4.multiplyByScale(frame, new Cartesian3(radius, radius, length), frame)
+    Cartesian3.fromElements(0, 0, length / 2, this.primitiveTranslationScratch)
+    Cartesian3.fromElements(radius, radius, length, this.primitiveScaleScratch)
+    Matrix4.multiplyByTranslation(result, this.primitiveTranslationScratch, result)
+    return Matrix4.multiplyByScale(result, this.primitiveScaleScratch, result)
   }
 
   private updatePrimitiveModelMatrix(animationSeconds: number): void {
     if (!this.conePrimitive) return
-    this.conePrimitive.modelMatrix = this.createPrimitiveModelMatrix(animationSeconds)
+    this.createPrimitiveModelMatrix(animationSeconds, this.conePrimitive.modelMatrix)
   }
 
   private removeConePrimitive(): void {
