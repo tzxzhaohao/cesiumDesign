@@ -4248,11 +4248,13 @@ export class ScanConeEffect implements ScanConeEffectInstance {
   private cameraFollowPlanned = false
   private cameraFollowCancelledByUser = false
   private cameraFollowListenersAttached = false
+  private cameraFollowGeneration = 0
+  private activeCameraFollowGeneration: number | null = null
   private renderFrame = 0
   private destroyed = false
 
   private readonly handleCameraFollowUserInput = (): void => {
-    if (!this.cameraFollowListenersAttached) return
+    if (this.activeCameraFollowGeneration === null) return
     this.cameraFollowCancelledByUser = true
     this.stopExpansionCameraFollow(true)
   }
@@ -4288,6 +4290,12 @@ export class ScanConeEffect implements ScanConeEffectInstance {
       previous.expansion?.durationMs !== next.expansion?.durationMs
     )
     const cameraFollowChanged = previous.expansion?.cameraFollow !== next.expansion?.cameraFollow
+    const cameraTargetChanged = Boolean(previous.expansion && next.expansion) && (
+      !positionEqual(previous.center, next.center) ||
+      previous.heading !== next.heading ||
+      previous.pitch !== next.pitch ||
+      previous.speed !== next.speed
+    )
     const rebuildEntities = !next.expansion && shouldRebuildScanCone(previous, next)
     if (modeChanged) this.stopExpansionCameraFollow(true)
     this.options = next
@@ -4311,6 +4319,18 @@ export class ScanConeEffect implements ScanConeEffectInstance {
       this.stopExpansionCameraFollow(true)
       this.cameraFollowPlanned = false
       this.cameraFollowCancelledByUser = false
+      this.startExpansionCameraFollow(this.getExpansionRemainingDurationMs())
+    }
+
+    if (
+      !modeChanged &&
+      !restartExpansion &&
+      !cameraFollowChanged &&
+      cameraTargetChanged &&
+      !this.cameraFollowCancelledByUser
+    ) {
+      this.stopExpansionCameraFollow(true)
+      this.cameraFollowPlanned = false
       this.startExpansionCameraFollow(this.getExpansionRemainingDurationMs())
     }
 
@@ -4382,7 +4402,7 @@ export class ScanConeEffect implements ScanConeEffectInstance {
   flyTo(options: ScanConeFlyToOptions = {}): void {
     if (this.destroyed) return
 
-    if (this.cameraFollowListenersAttached) {
+    if (this.activeCameraFollowGeneration !== null) {
       this.cameraFollowCancelledByUser = true
       this.stopExpansionCameraFollow(true)
     }
@@ -4661,14 +4681,20 @@ export class ScanConeEffect implements ScanConeEffectInstance {
     ) return
 
     this.cameraFollowPlanned = true
-    const sphere = this.createFinalExpansionBoundingSphere(durationMs)
     const camera = this.viewer.camera
-    const position = camera.positionWC ?? camera.position
-    const direction = camera.directionWC ?? camera.direction
-    const up = camera.upWC ?? camera.up
-    const visibility = camera.frustum
-      .computeCullingVolume(position, direction, up)
-      .computeVisibility(sphere)
+    let sphere: BoundingSphere
+    let visibility: Intersect
+    try {
+      sphere = this.createFinalExpansionBoundingSphere(durationMs)
+      const position = camera.positionWC ?? camera.position
+      const direction = camera.directionWC ?? camera.direction
+      const up = camera.upWC ?? camera.up
+      visibility = camera.frustum
+        .computeCullingVolume(position, direction, up)
+        .computeVisibility(sphere)
+    } catch {
+      return
+    }
     if (visibility === Intersect.INSIDE) return
 
     const heading = Number.isFinite(camera.heading) ? camera.heading : 0
@@ -4676,11 +4702,19 @@ export class ScanConeEffect implements ScanConeEffectInstance {
       ? clamp(camera.pitch, -CesiumMath.PI_OVER_TWO + 0.01, CesiumMath.PI_OVER_TWO - 0.01)
       : -CesiumMath.PI_OVER_FOUR
     const framedSphere = new BoundingSphere(sphere.center, sphere.radius * 1.18)
+    const generation = ++this.cameraFollowGeneration
+    this.activeCameraFollowGeneration = generation
     this.attachCameraFollowListeners()
-    camera.flyToBoundingSphere(framedSphere, {
-      duration: durationMs / 1000,
-      offset: new HeadingPitchRange(heading, pitch, 0),
-    })
+    try {
+      camera.flyToBoundingSphere(framedSphere, {
+        duration: durationMs / 1000,
+        offset: new HeadingPitchRange(heading, pitch, 0),
+        complete: () => this.releaseExpansionCameraFollow(generation),
+        cancel: () => this.releaseExpansionCameraFollow(generation),
+      })
+    } catch {
+      this.releaseExpansionCameraFollow(generation)
+    }
   }
 
   private createFinalExpansionBoundingSphere(durationMs: number): BoundingSphere {
@@ -4708,12 +4742,36 @@ export class ScanConeEffect implements ScanConeEffectInstance {
   }
 
   private stopExpansionCameraFollow(cancelFlight: boolean): void {
+    const generation = this.activeCameraFollowGeneration
+    if (generation === null) {
+      this.detachCameraFollowListeners()
+      return
+    }
+    if (!cancelFlight) {
+      this.releaseExpansionCameraFollow(generation)
+      return
+    }
+    try {
+      this.viewer.camera.cancelFlight()
+    } catch {
+      // Camera follow is optional; camera failures must not stop the effect lifecycle.
+    } finally {
+      this.releaseExpansionCameraFollow(generation)
+    }
+  }
+
+  private releaseExpansionCameraFollow(generation: number): void {
+    if (this.activeCameraFollowGeneration !== generation) return
+    this.activeCameraFollowGeneration = null
+    this.detachCameraFollowListeners()
+  }
+
+  private detachCameraFollowListeners(): void {
     if (!this.cameraFollowListenersAttached) return
     this.viewer.canvas.removeEventListener('pointerdown', this.handleCameraFollowUserInput)
     this.viewer.canvas.removeEventListener('wheel', this.handleCameraFollowUserInput)
     this.viewer.canvas.removeEventListener('touchstart', this.handleCameraFollowUserInput)
     this.cameraFollowListenersAttached = false
-    if (cancelFlight) this.viewer.camera.cancelFlight()
   }
 
   private createPrimitiveModelMatrix(

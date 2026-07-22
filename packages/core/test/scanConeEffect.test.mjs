@@ -834,9 +834,192 @@ test('ScanConeEffect explicit flyTo replaces camera follow without letting hide 
   assert.equal(viewer.camera.cancelFlightCount, 1)
 })
 
-function createMockViewer({ visibility = Intersect.INSIDE, heading = 0.4, pitch = -0.5 } = {}) {
+test('ScanConeEffect releases automatic flight ownership when Cesium completes or replaces it', () => {
+  const replacedViewer = createMockViewer({ visibility: Intersect.OUTSIDE })
+  const replacedEffect = createScanConeEffect(replacedViewer, {
+    center,
+    expansion: { maxRadiusMeters: 200, durationMs: 1000, cameraFollow: true },
+  })
+  replacedViewer.camera.flyTo()
+  assert.equal(replacedViewer.canvas.listenerCount(), 0)
+  replacedViewer.canvas.dispatch('wheel')
+  replacedEffect.cancelExpansion()
+  replacedEffect.hide()
+  replacedEffect.destroy()
+  assert.equal(replacedViewer.camera.cancelFlightCount, 0)
+
+  const completedViewer = createMockViewer({ visibility: Intersect.OUTSIDE })
+  const completedEffect = createScanConeEffect(completedViewer, {
+    center,
+    expansion: { maxRadiusMeters: 200, durationMs: 1000, cameraFollow: true },
+  })
+  completedViewer.camera.completeActiveFlight()
+  assert.equal(completedViewer.canvas.listenerCount(), 0)
+  completedEffect.destroy()
+  assert.equal(completedViewer.camera.cancelFlightCount, 0)
+})
+
+test('ScanConeEffect replans a running automatic flight when its final target changes', () => {
+  const raf = installRafHarness()
+  try {
+    const changes = [
+      { center: { longitude: 117.2, latitude: 40.1 } },
+      { heading: 95 },
+      { pitch: -42 },
+      { speed: 2.4 },
+    ]
+    for (const change of changes) {
+      const viewer = createMockViewer({ visibility: Intersect.OUTSIDE })
+      const effect = createScanConeEffect(viewer, {
+        center,
+        heading: 15,
+        pitch: -25,
+        speed: 1,
+        lengthMeters: 600,
+        expansion: { maxRadiusMeters: 200, durationMs: 2000, cameraFollow: true },
+      })
+      raf.step(0)
+      raf.step(500)
+      const firstTarget = viewer.camera.visibilityChecks[0].center
+
+      effect.update(change)
+
+      assert.equal(viewer.camera.flyToBoundingSphereCount, 2)
+      assert.equal(viewer.camera.cancelFlightCount, 1)
+      assert.equal(viewer.camera.visibilityChecks.length, 2)
+      assert.equal(viewer.camera.flights[1].options.duration, 1.5)
+      assert.ok(Cartesian3.distance(firstTarget, viewer.camera.visibilityChecks[1].center) > 0.01)
+      effect.destroy()
+    }
+  } finally {
+    raf.restore()
+  }
+})
+
+test('ScanConeEffect does not replan target updates after user camera takeover', () => {
+  const viewer = createMockViewer({ visibility: Intersect.OUTSIDE })
+  const effect = createScanConeEffect(viewer, {
+    center,
+    heading: 15,
+    pitch: -25,
+    expansion: { maxRadiusMeters: 200, durationMs: 1000, cameraFollow: true },
+  })
+  viewer.canvas.dispatch('pointerdown')
+
+  effect.update({
+    center: { longitude: 117.2, latitude: 40.1 },
+    heading: 95,
+    pitch: -42,
+    speed: 2.4,
+  })
+
+  assert.equal(viewer.camera.flyToBoundingSphereCount, 1)
+  assert.equal(viewer.camera.visibilityChecks.length, 1)
+  assert.equal(viewer.camera.cancelFlightCount, 1)
+})
+
+test('ScanConeEffect keeps expansion alive and releases ownership when camera follow APIs throw', () => {
+  const raf = installRafHarness()
+  try {
+    let cullingEffect
+    const cullingViewer = createMockViewer({ visibility: Intersect.OUTSIDE, throwOnCulling: true })
+    assert.doesNotThrow(() => {
+      cullingEffect = createScanConeEffect(cullingViewer, {
+        center,
+        expansion: { maxRadiusMeters: 200, durationMs: 1000, cameraFollow: true },
+      })
+    })
+    raf.step(0)
+    raf.step(400)
+    assert.equal(cullingEffect.getExpansionState().elapsedMs, 400)
+    assert.equal(cullingViewer.canvas.listenerCount(), 0)
+    assert.doesNotThrow(() => cullingEffect.restartExpansion())
+
+    let flyEffect
+    const flyViewer = createMockViewer({ visibility: Intersect.OUTSIDE, throwOnFly: true })
+    assert.doesNotThrow(() => {
+      flyEffect = createScanConeEffect(flyViewer, {
+        center,
+        expansion: { maxRadiusMeters: 200, durationMs: 1000, cameraFollow: true },
+      })
+    })
+    assert.equal(flyEffect.getExpansionState().status, 'running')
+    assert.equal(flyViewer.canvas.listenerCount(), 0)
+    assert.doesNotThrow(() => flyEffect.hide())
+    assert.doesNotThrow(() => flyEffect.destroy())
+    assert.equal(flyViewer.camera.cancelFlightCount, 0)
+
+    const updateViewer = createMockViewer({ visibility: Intersect.OUTSIDE })
+    const updateEffect = createScanConeEffect(updateViewer, {
+      center,
+      pitch: -20,
+      expansion: { maxRadiusMeters: 200, durationMs: 1000, cameraFollow: true },
+    })
+    updateViewer.camera.throwOnCulling = true
+    assert.doesNotThrow(() => updateEffect.update({ heading: 90 }))
+    assert.equal(updateEffect.getExpansionState().status, 'running')
+    assert.equal(updateViewer.canvas.listenerCount(), 0)
+  } finally {
+    raf.restore()
+  }
+})
+
+function createMockViewer({
+  visibility = Intersect.INSIDE,
+  heading = 0.4,
+  pitch = -0.5,
+  throwOnCulling = false,
+  throwOnFly = false,
+} = {}) {
   const canvas = createMockCanvas()
   const visibilityChecks = []
+  const camera = {
+    activeFlightOptions: null,
+    throwOnCulling,
+    throwOnFly,
+    frustum: {
+      computeCullingVolume() {
+        if (camera.throwOnCulling) throw new Error('culling failed')
+        return {
+          computeVisibility(sphere) {
+            visibilityChecks.push(sphere)
+            return visibility
+          },
+        }
+      },
+    },
+    position: new Cartesian3(1, 2, 3),
+    direction: new Cartesian3(0, 0, -1),
+    up: new Cartesian3(0, 1, 0),
+    heading,
+    pitch,
+    flyToBoundingSphereCount: 0,
+    cancelFlightCount: 0,
+    flights: [],
+    visibilityChecks,
+    flyToBoundingSphere(sphere, options) {
+      this.flyToBoundingSphereCount += 1
+      this.flights.push({ sphere, options })
+      if (this.throwOnFly) throw new Error('fly failed')
+      this.activeFlightOptions = options.complete || options.cancel ? options : null
+    },
+    cancelFlight() {
+      this.cancelFlightCount += 1
+      const options = this.activeFlightOptions
+      this.activeFlightOptions = null
+      options?.cancel?.()
+    },
+    flyTo() {
+      const options = this.activeFlightOptions
+      this.activeFlightOptions = null
+      options?.cancel?.()
+    },
+    completeActiveFlight() {
+      const options = this.activeFlightOptions
+      this.activeFlightOptions = null
+      options?.complete?.()
+    },
+  }
   return {
     canvas,
     scene: {
@@ -881,34 +1064,7 @@ function createMockViewer({ visibility = Intersect.INSIDE, heading = 0.4, pitch 
         return true
       },
     },
-    camera: {
-      frustum: {
-        computeCullingVolume() {
-          return {
-            computeVisibility(sphere) {
-              visibilityChecks.push(sphere)
-              return visibility
-            },
-          }
-        },
-      },
-      position: new Cartesian3(1, 2, 3),
-      direction: new Cartesian3(0, 0, -1),
-      up: new Cartesian3(0, 1, 0),
-      heading,
-      pitch,
-      flyToBoundingSphereCount: 0,
-      cancelFlightCount: 0,
-      flights: [],
-      visibilityChecks,
-      flyToBoundingSphere(sphere, options) {
-        this.flyToBoundingSphereCount += 1
-        this.flights.push({ sphere, options })
-      },
-      cancelFlight() {
-        this.cancelFlightCount += 1
-      },
-    },
+    camera,
   }
 }
 
