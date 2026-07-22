@@ -4577,13 +4577,21 @@ export class ScanConeEffect implements ScanConeEffectInstance {
       if (this.destroyed || !this.options.visible) {
         return
       }
-      const animationSeconds = Number.isFinite(timestamp) ? timestamp / 1000 : 0
-      if (this.primitiveMaterial) this.primitiveMaterial.uniforms.timeSeconds = animationSeconds
-      const modelMatrixUpdated = this.advanceExpansion(timestamp)
-      if (this.destroyed || !this.options.visible) return
-      if (this.conePrimitive && !modelMatrixUpdated) this.updatePrimitiveModelMatrix(animationSeconds)
-      this.viewer.scene.requestRender()
-      if (!this.renderFrame) this.renderFrame = window.requestAnimationFrame(tick)
+      try {
+        const animationSeconds = Number.isFinite(timestamp) ? timestamp / 1000 : 0
+        if (this.primitiveMaterial) this.primitiveMaterial.uniforms.timeSeconds = animationSeconds
+        const modelMatrixUpdated = this.advanceExpansion(timestamp)
+        if (this.destroyed || !this.options.visible) return
+        if (this.conePrimitive && !modelMatrixUpdated) this.updatePrimitiveModelMatrix(animationSeconds)
+      } finally {
+        if (!this.destroyed && this.options.visible) {
+          try {
+            this.viewer.scene.requestRender()
+          } finally {
+            if (!this.renderFrame) this.renderFrame = window.requestAnimationFrame(tick)
+          }
+        }
+      }
     }
 
     this.renderFrame = window.requestAnimationFrame(tick)
@@ -4642,8 +4650,11 @@ export class ScanConeEffect implements ScanConeEffectInstance {
     const notifyCompletion = completed && !this.completionNotified
     if (notifyCompletion) this.completionNotified = true
     if (completed) this.detachCameraFollowListeners()
-    expansion.onFrame?.(callbackState)
-    if (notifyCompletion) expansion.onComplete?.({ ...callbackState })
+    try {
+      expansion.onFrame?.(callbackState)
+    } finally {
+      if (!this.destroyed && notifyCompletion) expansion.onComplete?.({ ...callbackState })
+    }
     return true
   }
 

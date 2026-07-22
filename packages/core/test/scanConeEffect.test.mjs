@@ -493,6 +493,86 @@ test('ScanConeEffect does not schedule another animation frame when onFrame dest
   }
 })
 
+test('ScanConeEffect keeps rendering after an onFrame callback throws', () => {
+  const raf = installRafHarness()
+  try {
+    let frameCalls = 0
+    const viewer = createMockViewer()
+    const effect = createScanConeEffect(viewer, {
+      center,
+      expansion: {
+        maxRadiusMeters: 200,
+        durationMs: 1000,
+        onFrame: () => {
+          frameCalls += 1
+          if (frameCalls === 1) throw new Error('frame callback failed')
+        },
+      },
+    })
+
+    assert.throws(() => raf.step(0), /frame callback failed/)
+    assert.equal(viewer.scene.requestRenderCount, 2)
+    assert.equal(raf.pendingCount(), 1)
+    raf.step(500)
+    assert.equal(effect.getExpansionState().progress, 0.5)
+    assert.equal(raf.pendingCount(), 1)
+  } finally {
+    raf.restore()
+  }
+})
+
+test('ScanConeEffect keeps rendering after an onComplete callback throws', () => {
+  const raf = installRafHarness()
+  try {
+    const effect = createScanConeEffect(createMockViewer(), {
+      center,
+      expansion: {
+        maxRadiusMeters: 200,
+        durationMs: 1000,
+        onComplete: () => {
+          throw new Error('completion callback failed')
+        },
+      },
+    })
+
+    raf.step(0)
+    assert.throws(() => raf.step(1000), /completion callback failed/)
+    assert.equal(effect.getExpansionState().status, 'completed')
+    assert.equal(raf.pendingCount(), 1)
+    raf.step(1500)
+    assert.equal(raf.pendingCount(), 1)
+  } finally {
+    raf.restore()
+  }
+})
+
+test('ScanConeEffect suppresses completion when final onFrame destroys the effect', () => {
+  const raf = installRafHarness()
+  try {
+    let effect
+    let completions = 0
+    effect = createScanConeEffect(createMockViewer(), {
+      center,
+      expansion: {
+        maxRadiusMeters: 200,
+        durationMs: 1000,
+        onFrame: state => {
+          if (state.status === 'completed') effect.destroy()
+        },
+        onComplete: () => { completions += 1 },
+      },
+    })
+
+    raf.step(0)
+    raf.step(1000)
+    assert.equal(effect.isDestroyed(), true)
+    assert.equal(completions, 0)
+    assert.equal(raf.pendingCount(), 0)
+  } finally {
+    raf.restore()
+  }
+})
+
 test('ScanConeEffect completes both runs when final onFrame restarts expansion', () => {
   const raf = installRafHarness()
   try {

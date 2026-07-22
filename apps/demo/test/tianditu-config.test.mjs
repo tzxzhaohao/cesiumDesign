@@ -460,6 +460,7 @@ test('demo creates, updates, restarts, and cancels scan-cone expansion without d
   assert.match(controlState, /elements\.coneMaxRadius\.disabled = controls\.expansionSettingsDisabled/)
   assert.match(controlState, /elements\.coneExpansionDuration\.disabled = controls\.expansionSettingsDisabled/)
   assert.match(controlState, /elements\.coneCameraFollow\.disabled = controls\.expansionSettingsDisabled/)
+  assert.match(controlState, /elements\.aperture\.disabled = controls\.apertureDisabled/)
   assert.match(controlState, /elements\.cancelConeExpansion\.disabled = controls\.cancelDisabled/)
 })
 
@@ -558,12 +559,14 @@ test('scan-cone actions update fake effect state and disable cancel at terminal 
 
   assert.deepEqual(helpers.getConeExpansionControlState({ active: true, enabled: true, status: 'running' }), {
     radiusDisabled: true,
+    apertureDisabled: true,
     expansionSettingsDisabled: false,
     restartDisabled: false,
     cancelDisabled: false,
   })
   assert.deepEqual(helpers.getConeExpansionControlState({ active: true, enabled: false, status: 'static' }), {
     radiusDisabled: false,
+    apertureDisabled: false,
     expansionSettingsDisabled: true,
     restartDisabled: true,
     cancelDisabled: true,
@@ -624,9 +627,14 @@ test('generated scan-cone TypeScript and framework templates parse without doubl
   assert.match(smartCode, /autoStart: true/)
   assert.doesNotMatch(smartCode, /^cone\.flyTo\(\)$/m)
   assert.doesNotMatch(smartCode, /^cone\.restartExpansion\(\)$/m)
+  assert.doesNotMatch(smartCode, /^cone\.destroy\(\)$/m)
   assert.match(smartCode, /^\/\/ cone\.restartExpansion\(\)$/m)
-  assert.match(fixedCameraCode, /^cone\.flyTo\(\)$/m)
+  assert.match(smartCode, /^\/\/ cone\.destroy\(\)$/m)
+  assert.doesNotMatch(fixedCameraCode, /^cone\.flyTo\(\)$/m)
   assert.match(staticCode, /^cone\.flyTo\(\)$/m)
+  assert.doesNotMatch(smartCode, /^\s+aperture:/m)
+  assert.doesNotMatch(fixedCameraCode, /^\s+aperture:/m)
+  assert.match(staticCode, /^\s+aperture:/m)
   assert.doesNotMatch(staticCode, /expansion:/)
 
   for (const [label, code] of [['smart', smartCode], ['fixed-camera', fixedCameraCode], ['static', staticCode]]) {
@@ -636,6 +644,8 @@ test('generated scan-cone TypeScript and framework templates parse without doubl
   const reactCode = helpers.getReactCodeTemplate(smartCode)
   const vueCode = helpers.getVueCodeTemplate(smartCode)
   const vueScript = vueCode.match(/<script setup lang="ts">([\s\S]*?)<\/script>/)?.[1] ?? ''
+  assert.match(reactCode, /^\s+cone\.destroy\(\)$/m)
+  assert.match(vueScript, /^\s+cone\.destroy\(\)$/m)
   assertParsesTypeScript(reactCode, 'scan-cone-react')
   assert.ok(vueScript.length > 0, 'expected Vue TypeScript script')
   assertParsesTypeScript(vueScript, 'scan-cone-vue')

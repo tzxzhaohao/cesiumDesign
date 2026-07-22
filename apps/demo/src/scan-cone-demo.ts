@@ -19,6 +19,7 @@ export interface ConeExpansionEffectLike {
 
 export interface ConeExpansionControlState {
   radiusDisabled: boolean
+  apertureDisabled: boolean
   expansionSettingsDisabled: boolean
   restartDisabled: boolean
   cancelDisabled: boolean
@@ -70,6 +71,7 @@ export function getConeExpansionControlState(options: {
   if (!options.active) {
     return {
       radiusDisabled: false,
+      apertureDisabled: false,
       expansionSettingsDisabled: true,
       restartDisabled: true,
       cancelDisabled: true,
@@ -78,6 +80,7 @@ export function getConeExpansionControlState(options: {
 
   return {
     radiusDisabled: options.enabled,
+    apertureDisabled: options.enabled,
     expansionSettingsDisabled: !options.enabled,
     restartDisabled: !options.enabled,
     cancelDisabled: !options.enabled || options.status !== 'running',
@@ -116,6 +119,7 @@ export function formatConeExpansionProgress(
 }
 
 export function buildScanConeCode(options: ScanConeCodeOptions): string {
+  const apertureCode = options.expansion ? '' : `  aperture: ${options.aperture},\n`
   const expansionCode = options.expansion
     ? `  expansion: {
     maxRadiusMeters: ${options.expansion.maxRadiusMeters},
@@ -131,7 +135,7 @@ export function buildScanConeCode(options: ScanConeCodeOptions): string {
   },
 `
     : ''
-  const flyToCode = !options.expansion || !options.expansion.cameraFollow ? '\ncone.flyTo()\n' : '\n'
+  const flyToCode = options.expansion ? '\n' : '\ncone.flyTo()\n'
   const restartCode = options.expansion
     ? `
 // Restart from a UI event when needed:
@@ -148,11 +152,11 @@ const cone = createScanConeEffect(viewer, {
   radiusMeters: ${options.radiusMeters},
   lengthMeters: ${options.lengthMeters},
   speed: ${options.speed.toFixed(2)},
-  aperture: ${options.aperture},
-  heading: ${options.heading},
+${apertureCode}  heading: ${options.heading},
 ${expansionCode}})
 ${flyToCode}${restartCode}
-cone.destroy()`
+// Clean up when the owning view is disposed:
+// cone.destroy()`
 }
 
 export function getReactCodeTemplate(code: string): string {
@@ -244,6 +248,7 @@ function extractDestroyLines(code: string): string {
   return code
     .split('\n')
     .filter(isCleanupLine)
+    .map((line) => line.replace(/^(\s*)\/\/\s*(.*\.destroy\(\).*)$/, '$1$2'))
     .join('\n')
     .trim()
 }

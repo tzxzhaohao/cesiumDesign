@@ -1974,6 +1974,7 @@ function syncConeExpansionControlState(status?: ConeExpansionStatus): void {
   const controls = getConeExpansionControlState({ active, enabled, status: resolvedStatus })
 
   elements.radius.disabled = controls.radiusDisabled
+  elements.aperture.disabled = controls.apertureDisabled
   elements.coneMaxRadius.disabled = controls.expansionSettingsDisabled
   elements.coneExpansionDuration.disabled = controls.expansionSettingsDisabled
   elements.coneCameraFollow.disabled = controls.expansionSettingsDisabled
