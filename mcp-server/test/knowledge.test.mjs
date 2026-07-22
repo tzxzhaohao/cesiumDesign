@@ -1,5 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { existsSync } from 'node:fs'
 
 import {
   generateIntegrationNotes,
@@ -7,6 +8,11 @@ import {
   getUsageExample,
   listEffects,
 } from '../dist/index.js'
+
+test('packaged MCP build includes knowledge manifests under dist', () => {
+  assert.equal(existsSync(new URL('../dist/knowledge/effects/material-polyline.effect.json', import.meta.url)), true)
+  assert.equal(existsSync(new URL('../dist/knowledge/docs/material-polyline.md', import.meta.url)), true)
+})
 
 test('listEffects reads the radar scan manifest', async () => {
   const effects = await listEffects()

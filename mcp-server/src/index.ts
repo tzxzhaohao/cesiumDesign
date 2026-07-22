@@ -26,9 +26,9 @@ export interface EffectManifest extends EffectSummary {
 }
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url))
-const repositoryRoot = path.resolve(currentDir, '../..')
-const effectsDir = path.join(repositoryRoot, 'knowledge/effects')
-const docsDir = path.join(repositoryRoot, 'knowledge/docs')
+const knowledgeDir = path.join(currentDir, 'knowledge')
+const effectsDir = path.join(knowledgeDir, 'effects')
+const docsDir = path.join(knowledgeDir, 'docs')
 
 const effectFiles: Record<string, string> = {
   'radar-scan': path.join(effectsDir, 'radar-scan.effect.json'),

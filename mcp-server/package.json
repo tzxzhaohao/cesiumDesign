@@ -1,6 +1,6 @@
 {
   "name": "@ztgkzhaohao/geo-effect-kit-mcp",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "type": "module",
   "description": "MCP server for geo-effect-kit Cesium effect manifests and integration examples.",
   "license": "MIT",
@@ -34,7 +34,7 @@
     "package.json"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && node scripts/copy-knowledge.mjs",
     "test": "pnpm run build && node --test test/*.test.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
