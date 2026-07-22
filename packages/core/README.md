@@ -2,6 +2,23 @@
 
 Framework-neutral Cesium effects SDK.
 
+## Effects
+
+- `createRadarScanEffect`
+- `createRippleSpreadEffect`
+- `createPolylineFlowEffect`
+- `createMaterialPolylineEffect` for Mars3D-style material polylines, including custom image textures.
+- `createFlyLineEffect`
+- `createPipeFlowEffect`
+- `createWaterSurfaceEffect`
+- `createLightWallEffect`
+- `createScanConeEffect`
+- `createShieldDomeEffect`
+- `createTemperatureFieldEffect`
+- `createFireBillboardEffect`
+- `createSceneWeatherEffect`
+- `createPostProcessEffect`
+
 ## Install
 
 ```bash

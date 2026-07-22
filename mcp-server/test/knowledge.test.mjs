@@ -11,20 +11,21 @@ import {
 test('listEffects reads the radar scan manifest', async () => {
   const effects = await listEffects()
 
-  assert.equal(effects.length, 13)
+  assert.equal(effects.length, 14)
   assert.equal(effects[0].id, 'radar-scan')
   assert.equal(effects[1].id, 'ripple-spread')
   assert.equal(effects[2].id, 'scene-weather')
   assert.equal(effects[3].id, 'post-process')
   assert.equal(effects[4].id, 'polyline-flow')
-  assert.equal(effects[5].id, 'fly-line')
-  assert.equal(effects[6].id, 'pipe-flow')
-  assert.equal(effects[7].id, 'water-surface')
-  assert.equal(effects[8].id, 'light-wall')
-  assert.equal(effects[9].id, 'scan-cone')
-  assert.equal(effects[10].id, 'shield-dome')
-  assert.equal(effects[11].id, 'temperature-field')
-  assert.equal(effects[12].id, 'fire-billboard')
+  assert.equal(effects[5].id, 'material-polyline')
+  assert.equal(effects[6].id, 'fly-line')
+  assert.equal(effects[7].id, 'pipe-flow')
+  assert.equal(effects[8].id, 'water-surface')
+  assert.equal(effects[9].id, 'light-wall')
+  assert.equal(effects[10].id, 'scan-cone')
+  assert.equal(effects[11].id, 'shield-dome')
+  assert.equal(effects[12].id, 'temperature-field')
+  assert.equal(effects[13].id, 'fire-billboard')
   assert.equal(effects[0].packageName, '@ztgkzhaohao/geo-effect-kit')
 })
 
@@ -70,6 +71,7 @@ test('getEffectSchema returns route flow and 3D volume schemas', async () => {
   const weather = await getEffectSchema('scene-weather')
   const postProcess = await getEffectSchema('post-process')
   const flow = await getEffectSchema('polyline-flow')
+  const materialPolyline = await getEffectSchema('material-polyline')
   const flyLine = await getEffectSchema('fly-line')
   const pipe = await getEffectSchema('pipe-flow')
   const water = await getEffectSchema('water-surface')
@@ -86,6 +88,21 @@ test('getEffectSchema returns route flow and 3D volume schemas', async () => {
   assert.equal(flow.importName, 'createPolylineFlowEffect')
   assert.equal(flow.options.properties.type.default, 'dispatch')
   assert.equal(flow.options.properties.cornerRadius.default, 0)
+  assert.equal(materialPolyline.importName, 'createMaterialPolylineEffect')
+  assert.equal(materialPolyline.options.properties.style.default, 'flow')
+  assert.deepEqual(materialPolyline.options.properties.style.enum, [
+    'solid',
+    'outline',
+    'arrow',
+    'dash',
+    'dual-dash',
+    'flow',
+    'flow-color',
+    'three-dash',
+    'cross',
+    'navigation',
+  ])
+  assert.equal(materialPolyline.options.properties.image.description.includes('custom'), true)
   assert.equal(flyLine.importName, 'createFlyLineEffect')
   assert.equal(flyLine.options.properties.mode.default, 'single-arc')
   assert.deepEqual(flyLine.options.properties.mode.enum, ['single-arc', 'hub-spoke', 'bidirectional'])
@@ -136,6 +153,7 @@ test('getUsageExample returns new effect snippets', async () => {
   const weather = await getUsageExample('scene-weather', 'minimal')
   const postProcess = await getUsageExample('post-process', 'minimal')
   const flow = await getUsageExample('polyline-flow', 'minimal')
+  const materialPolyline = await getUsageExample('material-polyline', 'minimal')
   const flyLine = await getUsageExample('fly-line', 'minimal')
   const pipe = await getUsageExample('pipe-flow', 'minimal')
   const water = await getUsageExample('water-surface', 'minimal')
@@ -149,6 +167,8 @@ test('getUsageExample returns new effect snippets', async () => {
   assert.match(postProcess.code, /night-vision/)
   assert.match(flow.code, /createPolylineFlowEffect/)
   assert.match(flow.code, /cornerRadius/)
+  assert.match(materialPolyline.code, /createMaterialPolylineEffect/)
+  assert.match(materialPolyline.code, /image:/)
   assert.match(flyLine.code, /createFlyLineEffect/)
   assert.match(flyLine.code, /bidirectional/)
   assert.match(flyLine.code, /arcHeight/)

@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 This project follows semantic versioning after the public npm release. During `0.x`, public APIs may still evolve, but breaking changes should be documented here.
 
+## 0.3.0 - 2026-07-22
+
+- Added `material-polyline` with `createMaterialPolylineEffect` for Mars3D-style solid, outline, arrow, dash, texture, cross, and navigation polyline materials.
+- Added custom line image material support for `material-polyline`; `image` accepts URL strings, data URLs, image/canvas objects, `ImageBitmap`, and `OffscreenCanvas`, and takes priority over `imagePreset`.
+- Added `material-polyline` demo controls, TypeScript/React/Vue usage snippets, MCP schema, knowledge docs, and tests.
+
 ## 0.2.0 - 2026-06-28
 
 - Added the `flow` water-surface type for a stronger directional river-current style inspired by the yunzhou-onemap `WaterPrimitive` water effect.

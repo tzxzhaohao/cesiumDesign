@@ -22,6 +22,10 @@
             <span>polyline-flow</span>
             <small>dispatch route light</small>
           </button>
+          <button class="effect-tab" type="button" data-effect="material-polyline">
+            <span>material-polyline</span>
+            <small>texture and dash lines</small>
+          </button>
           <button class="effect-tab" type="button" data-effect="fly-line">
             <span>fly-line</span>
             <small>raised arc animation</small>
@@ -120,6 +124,14 @@
                 <option value="comet">comet</option>
                 <option value="electric">electric</option>
               </select>
+            </label>
+            <label id="materialPolylineCustomImageField" hidden>
+              <span>Custom image URL</span>
+              <input id="materialPolylineCustomImage" type="url" placeholder="/textures/material-polyline/neon-weave.png" />
+            </label>
+            <label id="materialPolylineShowcaseField" class="check-field" hidden>
+              <input id="materialPolylineShowcase" type="checkbox" />
+              <span>Show style showcase</span>
             </label>
             <label id="flyModeField" hidden>
               <span>Fly mode</span>

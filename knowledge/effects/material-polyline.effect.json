@@ -1,0 +1,128 @@
+{
+  "id": "material-polyline",
+  "name": "Material Polyline",
+  "packageName": "@ztgkzhaohao/geo-effect-kit",
+  "importName": "createMaterialPolylineEffect",
+  "summary": "A Cesium material polyline effect for Mars3D-style solid, outline, arrow, dash, animated texture, cross, and navigation route lines.",
+  "useCases": [
+    "Mars3D-style route material showcases",
+    "Custom texture lines for business-specific route symbols",
+    "Command, patrol, warning, navigation, and data-flow paths"
+  ],
+  "options": {
+    "properties": {
+      "positions": {
+        "type": "array",
+        "required": true,
+        "description": "WGS84 route points. Each point supports longitude, latitude, and optional height."
+      },
+      "style": {
+        "type": "string",
+        "default": "flow",
+        "enum": ["solid", "outline", "arrow", "dash", "dual-dash", "flow", "flow-color", "three-dash", "cross", "navigation"],
+        "description": "Polyline material style. Native Cesium styles are solid, outline, arrow, dash, and dual-dash. Dynamic material styles are flow, flow-color, three-dash, cross, and navigation."
+      },
+      "color": {
+        "type": "string",
+        "default": "#33f7ff",
+        "description": "Primary CSS color for the line material."
+      },
+      "secondaryColor": {
+        "type": "string",
+        "default": "#ffffff",
+        "description": "Secondary CSS color used by outline, dual-dash, and dynamic accent branches."
+      },
+      "backgroundColor": {
+        "type": "string",
+        "default": "rgba(0, 64, 255, 0.35)",
+        "description": "Background or low-alpha color used by dynamic material branches."
+      },
+      "width": {
+        "type": "number",
+        "default": 8,
+        "minimum": 1,
+        "description": "Polyline width in screen pixels."
+      },
+      "outlineWidth": {
+        "type": "number",
+        "default": 2,
+        "minimum": 0,
+        "description": "Outline width for the outline style."
+      },
+      "speed": {
+        "type": "number",
+        "default": 1,
+        "minimum": 0.05,
+        "maximum": 8,
+        "description": "Animation speed multiplier for dynamic texture and procedural styles."
+      },
+      "repeat": {
+        "type": "object",
+        "default": { "x": 4, "y": 1 },
+        "description": "Texture repeat count. x controls repetition along the route and y controls vertical texture repetition."
+      },
+      "imagePreset": {
+        "type": "string",
+        "default": "pulse",
+        "enum": ["pulse", "gradual", "arrow-blue", "rainbow", "arrow-repeat", "dovetail", "yellow-flow", "transparent-flow", "interval", "small-arrow", "gradient"],
+        "description": "Built-in image texture preset for dynamic material styles."
+      },
+      "image": {
+        "type": "string | HTMLImageElement | HTMLCanvasElement | ImageBitmap | OffscreenCanvas",
+        "description": "Optional custom image material. Supports URL strings, data URLs, HTMLImageElement, HTMLCanvasElement, ImageBitmap, and OffscreenCanvas. When image is provided, it takes priority over imagePreset."
+      },
+      "arcHeight": {
+        "type": "number",
+        "default": 0,
+        "minimum": 0,
+        "description": "Optional raised-arc peak height in meters. 0 renders a normal route polyline."
+      },
+      "arcSamples": {
+        "type": "number",
+        "default": 48,
+        "minimum": 2,
+        "maximum": 128,
+        "description": "Sample count used when arcHeight is greater than 0."
+      },
+      "cornerRadius": {
+        "type": "number",
+        "default": 0,
+        "minimum": 0,
+        "maximum": 0.45,
+        "description": "Corner rounding strength for route bends. 0 keeps sharp corners."
+      },
+      "clampToGround": {
+        "type": "boolean",
+        "default": true,
+        "description": "Clamp route polylines to terrain when arcHeight is 0."
+      },
+      "visible": {
+        "type": "boolean",
+        "default": true,
+        "description": "Initial visibility for the effect data source."
+      }
+    }
+  },
+  "methods": ["update", "show", "hide", "flyTo", "destroy", "isVisible", "isDestroyed", "getOptions"],
+  "examples": {
+    "minimal": {
+      "language": "ts",
+      "code": "import { createMaterialPolylineEffect } from '@ztgkzhaohao/geo-effect-kit'\n\nconst materialLine = createMaterialPolylineEffect(viewer, {\n  positions: [\n    { longitude: 116.285, latitude: 39.87 },\n    { longitude: 116.394, latitude: 39.91 },\n    { longitude: 116.505, latitude: 39.9 },\n  ],\n  style: 'navigation',\n  color: '#33f7ff',\n  secondaryColor: '#ffffff',\n  backgroundColor: 'rgba(0, 64, 255, 0.35)',\n  width: 10,\n  speed: 1.2,\n  repeat: { x: 4, y: 1 },\n  image: 'https://example.com/textures/navigation-line.png',\n  cornerRadius: 0.14,\n})\n\nmaterialLine.flyTo()\nmaterialLine.destroy()\n"
+    },
+    "preset": {
+      "language": "ts",
+      "code": "const materialLine = createMaterialPolylineEffect(viewer, {\n  positions,\n  style: 'flow',\n  imagePreset: 'pulse',\n  color: '#33f7ff',\n  speed: 1,\n  width: 8,\n})\n"
+    },
+    "update": {
+      "language": "ts",
+      "code": "materialLine.update({\n  style: 'cross',\n  image: canvasTexture,\n  color: '#adff7d',\n  secondaryColor: '#ffffff',\n  speed: 2,\n  repeat: { x: 6, y: 1 },\n})\n"
+    }
+  },
+  "notes": [
+    "Pass an existing Cesium Viewer; the SDK does not create or own the viewer.",
+    "Static styles use Cesium native material properties; dynamic texture and procedural styles use a custom MaterialProperty.",
+    "image takes priority over imagePreset and can be a URL, data URL, image element, canvas, ImageBitmap, or OffscreenCanvas.",
+    "Changing positions, arcHeight, arcSamples, cornerRadius, or clampToGround rebuilds the route entity; colors, speed, repeat, and image update live.",
+    "Call destroy() during page cleanup to remove the data source and render loop."
+  ]
+}
