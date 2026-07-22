@@ -1,5 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { Cartesian3, Matrix4 } from 'cesium'
 
 import {
   buildScanConeMaterialSource,
@@ -259,12 +260,293 @@ test('ScanConeEffect updates material and orientation without rebuilding geometr
   assert.equal(viewer.dataSources.removeCount, 1)
 })
 
+test('ScanConeEffect expansion reuses one primitive and samples exact start, middle, and final frames', () => {
+  const raf = installRafHarness()
+  try {
+    const frames = []
+    const completions = []
+    const callbackScales = []
+    let primitive
+    const viewer = createMockViewer()
+    const effect = createScanConeEffect(viewer, {
+      center,
+      lengthMeters: 600,
+      expansion: {
+        maxRadiusMeters: 200,
+        durationMs: 1000,
+        onFrame: state => {
+          frames.push(state)
+          callbackScales.push(getModelScale(primitive.modelMatrix))
+        },
+        onComplete: state => completions.push(state),
+      },
+    })
+
+    assert.equal(viewer.scene.primitives.addCount, 1)
+    assert.equal(viewer.scene.primitives.values.length, 1)
+    assert.equal(viewer.dataSources.sources[0].entities.values.length, 1)
+    primitive = viewer.scene.primitives.values[0]
+    const geometry = primitive.geometryInstances.geometry
+    assert.equal(primitive.appearance.material.uniforms.timeSeconds, -1)
+
+    raf.step(100)
+    assert.deepEqual(effect.getExpansionState(), {
+      status: 'running',
+      progress: 0,
+      radiusMeters: 0,
+      lengthMeters: 0,
+      elapsedMs: 0,
+    })
+    assertModelScale(primitive.modelMatrix, [0.000001, 0.000001, 0.000001])
+
+    raf.step(600)
+    assert.deepEqual(effect.getExpansionState(), {
+      status: 'running',
+      progress: 0.5,
+      radiusMeters: 100,
+      lengthMeters: 300,
+      elapsedMs: 500,
+    })
+    assertModelScale(primitive.modelMatrix, [100, 100, 300])
+
+    raf.step(1100)
+    assert.deepEqual(effect.getExpansionState(), {
+      status: 'completed',
+      progress: 1,
+      radiusMeters: 200,
+      lengthMeters: 600,
+      elapsedMs: 1000,
+    })
+    assertModelScale(primitive.modelMatrix, [200, 200, 600])
+    assertModelBottomAtCenter(primitive.modelMatrix, center)
+    assert.equal(primitive.geometryInstances.geometry, geometry)
+    assert.equal(viewer.scene.primitives.addCount, 1)
+    assert.equal(viewer.scene.primitives.removeCount, 0)
+    assert.deepEqual(frames.map(frame => [frame.status, frame.progress]), [
+      ['running', 0],
+      ['running', 0.5],
+      ['completed', 1],
+    ])
+    assert.deepEqual(callbackScales, [
+      [0.000001, 0.000001, 0.000001],
+      [100, 100, 300],
+      [200, 200, 600],
+    ])
+    assert.equal(completions.length, 1)
+    assert.deepEqual(completions[0], frames.at(-1))
+
+    const completedMatrix = Matrix4.clone(primitive.modelMatrix)
+    raf.step(1600)
+    assert.equal(completions.length, 1)
+    assert.equal(frames.length, 3)
+    assert.equal(primitive.appearance.material.uniforms.timeSeconds, 1.6)
+    assert.equal(Matrix4.equals(primitive.modelMatrix, completedMatrix), false)
+  } finally {
+    raf.restore()
+  }
+})
+
+test('ScanConeEffect expansion supports idle, pause, cancel, restart, and copied state', () => {
+  const raf = installRafHarness()
+  try {
+    let completed = 0
+    const viewer = createMockViewer()
+    const effect = createScanConeEffect(viewer, {
+      center,
+      lengthMeters: 600,
+      expansion: {
+        maxRadiusMeters: 200,
+        durationMs: 1000,
+        autoStart: false,
+        onComplete: () => { completed += 1 },
+      },
+    })
+    const dataSource = viewer.dataSources.sources[0]
+    const primitive = viewer.scene.primitives.values[0]
+
+    assert.equal(effect.isExpanding(), false)
+    assert.equal(effect.getExpansionState().status, 'idle')
+    assertModelScale(primitive.modelMatrix, [0.000001, 0.000001, 0.000001])
+    raf.step(100)
+    assert.equal(effect.getExpansionState().progress, 0)
+
+    effect.restartExpansion()
+    assert.equal(effect.isExpanding(), true)
+    raf.step(200)
+    raf.step(700)
+    assert.equal(effect.getExpansionState().progress, 0.5)
+    const copiedState = effect.getExpansionState()
+    copiedState.status = 'completed'
+    copiedState.progress = 1
+    assert.equal(effect.getExpansionState().status, 'running')
+    assert.equal(effect.getExpansionState().progress, 0.5)
+
+    effect.hide()
+    assert.equal(effect.getExpansionState().status, 'paused')
+    assert.equal(effect.isExpanding(), false)
+    assert.equal(dataSource.show, false)
+    assert.equal(primitive.show, false)
+    raf.step(5000)
+    assert.equal(effect.getExpansionState().progress, 0.5)
+
+    effect.show()
+    assert.equal(effect.getExpansionState().status, 'running')
+    assert.equal(primitive.show, true)
+    raf.step(6000)
+    assert.equal(effect.getExpansionState().progress, 0.5)
+    effect.cancelExpansion()
+    assert.equal(effect.getExpansionState().status, 'cancelled')
+    assert.equal(completed, 0)
+    effect.hide()
+    effect.show()
+    assert.equal(effect.getExpansionState().status, 'cancelled')
+
+    effect.restartExpansion()
+    assert.equal(effect.getExpansionState().progress, 0)
+    raf.step(7000)
+    raf.step(8000)
+    assert.equal(effect.getExpansionState().status, 'completed')
+    assert.equal(completed, 1)
+  } finally {
+    raf.restore()
+  }
+})
+
+test('ScanConeEffect expansion ignores backward timestamps and completes callbacks in order once', () => {
+  const raf = installRafHarness()
+  try {
+    const events = []
+    const effect = createScanConeEffect(createMockViewer(), {
+      center,
+      lengthMeters: 600,
+      expansion: {
+        maxRadiusMeters: 200,
+        durationMs: 1000,
+        onFrame: state => events.push(`frame:${state.status}:${state.elapsedMs}`),
+        onComplete: state => events.push(`complete:${state.status}:${state.elapsedMs}`),
+      },
+    })
+
+    raf.step(100)
+    raf.step(600)
+    raf.step(400)
+    assert.equal(effect.getExpansionState().elapsedMs, 500)
+    raf.step(1100)
+    raf.step(1600)
+    assert.deepEqual(events, [
+      'frame:running:0',
+      'frame:running:500',
+      'frame:running:500',
+      'frame:completed:1000',
+      'complete:completed:1000',
+    ])
+  } finally {
+    raf.restore()
+  }
+})
+
+test('ScanConeEffect updates an expansion primitive in place, restarts dimensional changes, and cleans mode switches', () => {
+  const raf = installRafHarness()
+  try {
+    const viewer = createMockViewer()
+    const effect = createScanConeEffect(viewer, {
+      center,
+      lengthMeters: 600,
+      expansion: { maxRadiusMeters: 200, durationMs: 1000 },
+    })
+    const primitive = viewer.scene.primitives.values[0]
+    const material = primitive.appearance.material
+    raf.step(100)
+    raf.step(600)
+
+    effect.update({
+      center: { longitude: 116.43, latitude: 39.94 },
+      color: '#ff315a',
+      type: 'alarm',
+      opacity: 0.4,
+      speed: 2.5,
+      aperture: 48,
+      heading: 35,
+      pitch: -18,
+      showOrigin: false,
+    })
+    assert.equal(viewer.scene.primitives.values[0], primitive)
+    assert.equal(viewer.scene.primitives.addCount, 1)
+    assert.equal(viewer.scene.primitives.removeCount, 0)
+    assert.equal(material.uniforms.color.toCssHexString(), '#ff315a')
+    assert.equal(material.uniforms.coneType, 5)
+    assert.equal(material.uniforms.opacity, 0.4)
+    assert.equal(material.uniforms.speed, 2.5)
+    assert.equal(material.uniforms.aperture, 48)
+    assert.equal(effect.getExpansionState().progress, 0.5)
+
+    effect.update({ lengthMeters: 800 })
+    assert.equal(effect.getExpansionState().status, 'running')
+    assert.equal(effect.getExpansionState().progress, 0)
+    assert.equal(viewer.scene.primitives.values[0], primitive)
+
+    effect.update({
+      expansion: {
+        ...effect.getOptions().expansion,
+        maxRadiusMeters: 300,
+        durationMs: 2000,
+      },
+    })
+    assert.equal(effect.getExpansionState().progress, 0)
+    assert.equal(viewer.scene.primitives.values[0], primitive)
+    assert.equal(viewer.scene.primitives.addCount, 1)
+
+    effect.update({ expansion: undefined, showOrigin: true })
+    assert.equal(viewer.scene.primitives.removeCount, 1)
+    assert.equal(viewer.scene.primitives.values.length, 0)
+    assert.equal(viewer.dataSources.sources[0].entities.values.length, 2)
+    assert.equal(effect.getExpansionState().status, 'idle')
+
+    effect.update({
+      expansion: { maxRadiusMeters: 250, durationMs: 1200, autoStart: false },
+    })
+    assert.equal(viewer.scene.primitives.addCount, 2)
+    assert.equal(viewer.scene.primitives.values.length, 1)
+    assert.equal(effect.getExpansionState().status, 'idle')
+
+    effect.destroy()
+    effect.destroy()
+    effect.update({ color: '#ffffff' })
+    effect.restartExpansion()
+    effect.cancelExpansion()
+    effect.show()
+    effect.hide()
+    assert.equal(viewer.scene.primitives.removeCount, 2)
+    assert.equal(viewer.scene.primitives.values.length, 0)
+    assert.equal(viewer.dataSources.removeCount, 1)
+    assert.equal(raf.pendingCount(), 0)
+  } finally {
+    raf.restore()
+  }
+})
+
 function createMockViewer() {
   return {
     scene: {
       requestRenderCount: 0,
       requestRender() {
         this.requestRenderCount += 1
+      },
+      primitives: {
+        addCount: 0,
+        removeCount: 0,
+        values: [],
+        add(primitive) {
+          this.addCount += 1
+          this.values.push(primitive)
+          return primitive
+        },
+        remove(primitive) {
+          this.removeCount += 1
+          const index = this.values.indexOf(primitive)
+          if (index >= 0) this.values.splice(index, 1)
+          return index >= 0
+        },
       },
     },
     dataSources: {
@@ -294,4 +576,54 @@ function createMockViewer() {
       },
     },
   }
+}
+
+function installRafHarness() {
+  const previousWindow = globalThis.window
+  let nextId = 1
+  const callbacks = new Map()
+  globalThis.window = {
+    requestAnimationFrame(callback) {
+      const id = nextId++
+      callbacks.set(id, callback)
+      return id
+    },
+    cancelAnimationFrame(id) {
+      callbacks.delete(id)
+    },
+  }
+
+  return {
+    step(timestamp) {
+      const pending = [...callbacks.entries()]
+      callbacks.clear()
+      for (const [, callback] of pending) callback(timestamp)
+    },
+    restore() {
+      callbacks.clear()
+      if (previousWindow === undefined) delete globalThis.window
+      else globalThis.window = previousWindow
+    },
+    pendingCount() {
+      return callbacks.size
+    },
+  }
+}
+
+function assertModelScale(modelMatrix, expected) {
+  const actual = getModelScale(modelMatrix)
+  assert.ok(Math.abs(actual[0] - expected[0]) < 1e-7, `expected x scale ${expected[0]}, got ${actual[0]}`)
+  assert.ok(Math.abs(actual[1] - expected[1]) < 1e-7, `expected y scale ${expected[1]}, got ${actual[1]}`)
+  assert.ok(Math.abs(actual[2] - expected[2]) < 1e-7, `expected z scale ${expected[2]}, got ${actual[2]}`)
+}
+
+function getModelScale(modelMatrix) {
+  const scale = Matrix4.getScale(modelMatrix, new Cartesian3())
+  return [scale.x, scale.y, scale.z].map(value => Math.round(value * 1000000) / 1000000)
+}
+
+function assertModelBottomAtCenter(modelMatrix, position) {
+  const actual = Matrix4.multiplyByPoint(modelMatrix, new Cartesian3(0, 0, -0.5), new Cartesian3())
+  const expected = Cartesian3.fromDegrees(position.longitude, position.latitude, position.height ?? 0)
+  assert.ok(Cartesian3.distance(actual, expected) < 1e-6)
 }

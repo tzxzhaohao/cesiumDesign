@@ -12,6 +12,7 @@ import {
   ConstantPositionProperty,
   ConstantProperty,
   CustomDataSource,
+  CylinderGeometry,
   EllipsoidSurfaceAppearance,
   Event,
   GeometryInstance,
@@ -21,7 +22,9 @@ import {
   HeightReference,
   HorizontalOrigin,
   Material,
+  MaterialAppearance,
   Math as CesiumMath,
+  Matrix4,
   PointGraphics,
   PolylineArrowMaterialProperty,
   PolylineDashMaterialProperty,
@@ -40,10 +43,11 @@ import {
   type Viewer,
 } from 'cesium'
 import { decompressFrames, parseGIF, type ParsedFrame } from 'gifuct-js'
-import { normalizeScanConeExpansionOptions } from './scan-cone-expansion.js'
+import { normalizeScanConeExpansionOptions, sampleScanConeExpansionFrame } from './scan-cone-expansion.js'
 import type {
   NormalizedScanConeExpansionOptions,
   ScanConeExpansionOptions,
+  ScanConeExpansionState,
 } from './scan-cone-expansion.js'
 
 export type {
@@ -586,6 +590,10 @@ export interface ScanConeFlyToOptions {
 
 export interface ScanConeEffectInstance {
   update(options: Partial<ScanConeOptions>): void
+  restartExpansion(): void
+  cancelExpansion(): void
+  isExpanding(): boolean
+  getExpansionState(): ScanConeExpansionState
   show(): void
   hide(): void
   flyTo(options?: ScanConeFlyToOptions): void
@@ -4223,8 +4231,14 @@ export class ScanConeEffect implements ScanConeEffectInstance {
   private readonly dataSource: CustomDataSource
   private options: NormalizedScanConeOptions
   private coneEntity: Entity | null = null
+  private conePrimitive: Primitive | null = null
   private originEntity: Entity | null = null
   private material: DynamicCesiumMaterialProperty | null = null
+  private primitiveMaterial: Material | null = null
+  private expansionState: ScanConeExpansionState = createInitialScanConeExpansionState('idle')
+  private expansionPreviousTimestamp: number | null = null
+  private pausedByVisibility = false
+  private completionNotified = false
   private renderFrame = 0
   private destroyed = false
 
@@ -4234,7 +4248,8 @@ export class ScanConeEffect implements ScanConeEffectInstance {
     this.dataSource = new CustomDataSource('geo-effect-kit-scan-cone')
     this.dataSource.show = this.options.visible
     this.viewer.dataSources.add(this.dataSource)
-    this.renderEntities()
+    this.resetExpansionState()
+    this.renderCurrentPath()
     this.startRenderLoop()
     this.viewer.scene.requestRender()
   }
@@ -4249,26 +4264,74 @@ export class ScanConeEffect implements ScanConeEffectInstance {
       showOrigin: options.showOrigin ?? this.options.showOrigin,
       visible: options.visible ?? this.options.visible,
     })
-    const rebuildEntities = shouldRebuildScanCone(this.options, next)
+    const previous = this.options
+    const modeChanged = Boolean(previous.expansion) !== Boolean(next.expansion)
+    const restartExpansion = Boolean(previous.expansion && next.expansion) && (
+      previous.lengthMeters !== next.lengthMeters ||
+      previous.expansion?.maxRadiusMeters !== next.expansion?.maxRadiusMeters ||
+      previous.expansion?.durationMs !== next.expansion?.durationMs
+    )
+    const rebuildEntities = !next.expansion && shouldRebuildScanCone(previous, next)
     this.options = next
 
-    if (rebuildEntities) {
+    if (modeChanged) {
+      this.resetExpansionState()
+      this.renderCurrentPath()
+    } else if (rebuildEntities) {
       this.renderEntities()
     } else {
       this.applyMaterialOptions()
       this.syncOriginEntity()
+      if (restartExpansion) this.restartExpansion()
+      else if (this.options.expansion) this.updatePrimitiveModelMatrix(getAnimationSeconds())
     }
 
     this.dataSource.show = this.options.visible
+    if (this.conePrimitive) this.conePrimitive.show = this.options.visible
+    if (!modeChanged && !restartExpansion && previous.visible !== this.options.visible) {
+      if (this.options.visible) this.resumeExpansionAfterVisibilityPause()
+      else this.pauseExpansionForVisibility()
+    }
     if (this.options.visible) this.startRenderLoop()
     else this.stopRenderLoop()
     this.viewer.scene.requestRender()
+  }
+
+  restartExpansion(): void {
+    if (this.destroyed || !this.options.expansion) return
+
+    this.expansionState = createInitialScanConeExpansionState(this.options.visible ? 'running' : 'paused')
+    this.expansionPreviousTimestamp = null
+    this.pausedByVisibility = !this.options.visible
+    this.completionNotified = false
+    this.updatePrimitiveModelMatrix(getAnimationSeconds())
+    if (this.options.visible) this.startRenderLoop()
+    this.viewer.scene.requestRender()
+  }
+
+  cancelExpansion(): void {
+    if (this.destroyed || !this.options.expansion) return
+    if (this.expansionState.status === 'completed' || this.expansionState.status === 'cancelled') return
+
+    this.expansionState = { ...this.expansionState, status: 'cancelled' }
+    this.expansionPreviousTimestamp = null
+    this.pausedByVisibility = false
+  }
+
+  isExpanding(): boolean {
+    return !this.destroyed && this.expansionState.status === 'running'
+  }
+
+  getExpansionState(): ScanConeExpansionState {
+    return { ...this.expansionState }
   }
 
   show(): void {
     if (this.destroyed) return
     this.options = { ...this.options, visible: true }
     this.dataSource.show = true
+    if (this.conePrimitive) this.conePrimitive.show = true
+    this.resumeExpansionAfterVisibilityPause()
     this.startRenderLoop()
     this.viewer.scene.requestRender()
   }
@@ -4277,6 +4340,8 @@ export class ScanConeEffect implements ScanConeEffectInstance {
     if (this.destroyed) return
     this.options = { ...this.options, visible: false }
     this.dataSource.show = false
+    if (this.conePrimitive) this.conePrimitive.show = false
+    this.pauseExpansionForVisibility()
     this.stopRenderLoop()
     this.viewer.scene.requestRender()
   }
@@ -4297,10 +4362,12 @@ export class ScanConeEffect implements ScanConeEffectInstance {
 
     this.destroyed = true
     this.stopRenderLoop()
+    this.removeConePrimitive()
     this.dataSource.entities.removeAll()
     this.coneEntity = null
     this.originEntity = null
     this.material = null
+    this.primitiveMaterial = null
     this.viewer.dataSources.remove(this.dataSource, true)
     this.viewer.scene.requestRender()
   }
@@ -4321,6 +4388,7 @@ export class ScanConeEffect implements ScanConeEffectInstance {
   }
 
   private renderEntities(): void {
+    this.removeConePrimitive()
     clearEntities(this.dataSource)
     this.originEntity = null
     this.material = createScanConeMaterialProperty(this.options)
@@ -4343,14 +4411,49 @@ export class ScanConeEffect implements ScanConeEffectInstance {
     this.syncOriginEntity()
   }
 
-  private applyMaterialOptions(): void {
-    if (!this.material) return
+  private renderCurrentPath(): void {
+    if (this.options.expansion) this.renderPrimitive()
+    else this.renderEntities()
+  }
 
-    this.material.uniforms.color = Color.fromCssColorString(this.options.color).withAlpha(1)
-    this.material.uniforms.opacity = this.options.opacity
-    this.material.uniforms.speed = this.options.speed
-    this.material.uniforms.coneType = getScanConeTypeUniform(this.options.type)
-    this.material.uniforms.aperture = this.options.aperture
+  private renderPrimitive(): void {
+    clearEntities(this.dataSource)
+    this.coneEntity = null
+    this.originEntity = null
+    this.material = null
+    this.removeConePrimitive()
+    registerScanConeMaterial()
+    this.primitiveMaterial = Material.fromType(
+      GEO_SCAN_CONE_MATERIAL_TYPE,
+      createScanConeMaterialUniforms(this.options),
+    )
+    this.conePrimitive = this.viewer.scene.primitives.add(new Primitive({
+      geometryInstances: new GeometryInstance({
+        id: 'geo-effect-kit-scan-cone-volume',
+        geometry: new CylinderGeometry({
+          length: 1,
+          topRadius: 0,
+          bottomRadius: 1,
+          slices: 128,
+          vertexFormat: MaterialAppearance.MaterialSupport.TEXTURED.vertexFormat,
+        }),
+      }),
+      appearance: new MaterialAppearance({
+        material: this.primitiveMaterial,
+        translucent: true,
+        closed: false,
+        faceForward: true,
+      }),
+      asynchronous: false,
+      modelMatrix: this.createPrimitiveModelMatrix(getAnimationSeconds()),
+      show: this.options.visible,
+    }))
+    this.syncOriginEntity()
+  }
+
+  private applyMaterialOptions(): void {
+    if (this.material) applyScanConeMaterialUniforms(this.material.uniforms, this.options)
+    if (this.primitiveMaterial) applyScanConeMaterialUniforms(this.primitiveMaterial.uniforms, this.options)
   }
 
   private syncOriginEntity(): void {
@@ -4404,11 +4507,14 @@ export class ScanConeEffect implements ScanConeEffectInstance {
   private startRenderLoop(): void {
     if (this.renderFrame || !this.options.visible || typeof window === 'undefined') return
 
-    const tick = () => {
+    const tick = (timestamp: number) => {
       if (this.destroyed || !this.options.visible) {
         this.renderFrame = 0
         return
       }
+      this.advanceExpansion(timestamp)
+      if (this.primitiveMaterial) this.primitiveMaterial.uniforms.timeSeconds = timestamp / 1000
+      if (this.conePrimitive) this.updatePrimitiveModelMatrix(timestamp / 1000)
       this.viewer.scene.requestRender()
       this.renderFrame = window.requestAnimationFrame(tick)
     }
@@ -4424,6 +4530,91 @@ export class ScanConeEffect implements ScanConeEffectInstance {
 
     window.cancelAnimationFrame(this.renderFrame)
     this.renderFrame = 0
+  }
+
+  private resetExpansionState(): void {
+    if (!this.options.expansion) {
+      this.expansionState = createInitialScanConeExpansionState('idle')
+      this.expansionPreviousTimestamp = null
+      this.pausedByVisibility = false
+      this.completionNotified = false
+      return
+    }
+
+    const shouldRun = this.options.expansion.autoStart
+    this.expansionState = createInitialScanConeExpansionState(
+      shouldRun ? (this.options.visible ? 'running' : 'paused') : 'idle',
+    )
+    this.expansionPreviousTimestamp = null
+    this.pausedByVisibility = shouldRun && !this.options.visible
+    this.completionNotified = false
+  }
+
+  private advanceExpansion(timestamp: number): void {
+    const expansion = this.options.expansion
+    if (!expansion || this.expansionState.status !== 'running') return
+
+    const safeTimestamp = Number.isFinite(timestamp) ? timestamp : 0
+    const previousTimestamp = this.expansionPreviousTimestamp
+    const elapsedDelta = previousTimestamp === null ? 0 : Math.max(0, safeTimestamp - previousTimestamp)
+    this.expansionPreviousTimestamp = previousTimestamp === null
+      ? safeTimestamp
+      : Math.max(previousTimestamp, safeTimestamp)
+    const frame = sampleScanConeExpansionFrame(
+      expansion,
+      this.options.lengthMeters,
+      this.expansionState.elapsedMs + elapsedDelta,
+    )
+    const completed = frame.elapsedMs >= expansion.durationMs
+    this.expansionState = {
+      ...frame,
+      status: completed ? 'completed' : 'running',
+    }
+    this.updatePrimitiveModelMatrix(safeTimestamp / 1000)
+    const callbackState = { ...this.expansionState }
+    expansion.onFrame?.(callbackState)
+    if (completed && !this.completionNotified) {
+      this.completionNotified = true
+      expansion.onComplete?.({ ...callbackState })
+    }
+  }
+
+  private pauseExpansionForVisibility(): void {
+    if (!this.options.expansion || this.expansionState.status !== 'running') return
+    this.expansionState = { ...this.expansionState, status: 'paused' }
+    this.expansionPreviousTimestamp = null
+    this.pausedByVisibility = true
+  }
+
+  private resumeExpansionAfterVisibilityPause(): void {
+    if (!this.options.expansion || this.expansionState.status !== 'paused' || !this.pausedByVisibility) return
+    this.expansionState = { ...this.expansionState, status: 'running' }
+    this.expansionPreviousTimestamp = null
+    this.pausedByVisibility = false
+  }
+
+  private createPrimitiveModelMatrix(animationSeconds: number): Matrix4 {
+    const heading = this.options.heading + animationSeconds * this.options.speed * 36
+    const frame = Transforms.headingPitchRollToFixedFrame(
+      this.getOriginCartesian(),
+      HeadingPitchRoll.fromDegrees(heading, this.options.pitch, 0),
+    )
+    const radius = Math.max(0.000001, this.expansionState.radiusMeters)
+    const length = Math.max(0.000001, this.expansionState.lengthMeters)
+    Matrix4.multiplyByTranslation(frame, new Cartesian3(0, 0, length / 2), frame)
+    return Matrix4.multiplyByScale(frame, new Cartesian3(radius, radius, length), frame)
+  }
+
+  private updatePrimitiveModelMatrix(animationSeconds: number): void {
+    if (!this.conePrimitive) return
+    this.conePrimitive.modelMatrix = this.createPrimitiveModelMatrix(animationSeconds)
+  }
+
+  private removeConePrimitive(): void {
+    if (!this.conePrimitive) return
+    this.viewer.scene.primitives.remove(this.conePrimitive)
+    this.conePrimitive = null
+    this.primitiveMaterial = null
   }
 }
 
@@ -4809,14 +5000,29 @@ function createLightWallMaterialProperty(options: NormalizedLightWallOptions): D
 export function createScanConeMaterialProperty(options: ScanConeOptions): DynamicCesiumMaterialProperty {
   const normalized = normalizeScanConeOptions(options)
   registerScanConeMaterial()
-  return new DynamicCesiumMaterialProperty(GEO_SCAN_CONE_MATERIAL_TYPE, {
-    color: Color.fromCssColorString(normalized.color).withAlpha(1),
-    opacity: normalized.opacity,
-    speed: normalized.speed,
-    timeSeconds: -1,
-    coneType: getScanConeTypeUniform(normalized.type),
-    aperture: normalized.aperture,
-  })
+  return new DynamicCesiumMaterialProperty(GEO_SCAN_CONE_MATERIAL_TYPE, createScanConeMaterialUniforms(normalized))
+}
+
+function createScanConeMaterialUniforms(
+  options: NormalizedScanConeOptions,
+  timeSeconds = -1,
+): Record<string, unknown> {
+  return {
+    color: Color.fromCssColorString(options.color).withAlpha(1),
+    opacity: options.opacity,
+    speed: options.speed,
+    timeSeconds,
+    coneType: getScanConeTypeUniform(options.type),
+    aperture: options.aperture,
+  }
+}
+
+function applyScanConeMaterialUniforms(
+  uniforms: Record<string, unknown>,
+  options: NormalizedScanConeOptions,
+): void {
+  const timeSeconds = typeof uniforms.timeSeconds === 'number' ? uniforms.timeSeconds : -1
+  Object.assign(uniforms, createScanConeMaterialUniforms(options, timeSeconds))
 }
 
 function createShieldDomeMaterialProperty(options: NormalizedShieldDomeOptions): DynamicCesiumMaterialProperty {
@@ -5171,6 +5377,18 @@ function getPipeLayerWidth(width: number, multiplier: number): number {
 function getConeBottomRadius(options: NormalizedScanConeOptions): number {
   const apertureRadius = Math.tan(CesiumMath.toRadians(options.aperture) / 2) * options.lengthMeters
   return Math.max(options.radiusMeters, apertureRadius)
+}
+
+function createInitialScanConeExpansionState(
+  status: ScanConeExpansionState['status'],
+): ScanConeExpansionState {
+  return {
+    status,
+    progress: 0,
+    radiusMeters: 0,
+    lengthMeters: 0,
+    elapsedMs: 0,
+  }
 }
 
 function normalizePositions(positions: GeoEffectPosition[], close: boolean): GeoEffectPosition[] {
