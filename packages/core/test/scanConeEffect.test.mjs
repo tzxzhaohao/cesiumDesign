@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { Cartesian3, Matrix4 } from 'cesium'
+import { Cartesian3, Intersect, Matrix4 } from 'cesium'
 
 import {
   buildScanConeMaterialSource,
@@ -660,8 +660,185 @@ test('ScanConeEffect updates an expansion primitive in place, restarts dimension
   }
 })
 
-function createMockViewer() {
+test('ScanConeEffect camera follow leaves an inside final cone and opt-out modes untouched', () => {
+  const insideViewer = createMockViewer({ visibility: Intersect.INSIDE })
+  createScanConeEffect(insideViewer, {
+    center,
+    lengthMeters: 600,
+    expansion: { maxRadiusMeters: 200, durationMs: 1000, cameraFollow: true },
+  })
+  assert.equal(insideViewer.camera.flyToBoundingSphereCount, 0)
+  assert.equal(insideViewer.canvas.listenerCount(), 0)
+
+  const optOutViewer = createMockViewer({ visibility: Intersect.OUTSIDE })
+  createScanConeEffect(optOutViewer, {
+    center,
+    expansion: { maxRadiusMeters: 200, durationMs: 1000, cameraFollow: false },
+  })
+  assert.equal(optOutViewer.camera.flyToBoundingSphereCount, 0)
+  assert.equal(optOutViewer.camera.visibilityChecks.length, 0)
+  assert.equal(optOutViewer.canvas.listenerCount(), 0)
+
+  const staticViewer = createMockViewer({ visibility: Intersect.OUTSIDE })
+  createScanConeEffect(staticViewer, { center })
+  assert.equal(staticViewer.camera.flyToBoundingSphereCount, 0)
+  assert.equal(staticViewer.camera.visibilityChecks.length, 0)
+  assert.equal(staticViewer.canvas.listenerCount(), 0)
+})
+
+test('ScanConeEffect camera follow frames intersecting and outside final cones once with coordinated duration', () => {
+  for (const visibility of [Intersect.INTERSECTING, Intersect.OUTSIDE]) {
+    const viewer = createMockViewer({ visibility, heading: 0.73, pitch: -0.41 })
+    createScanConeEffect(viewer, {
+      center,
+      lengthMeters: 600,
+      heading: 0,
+      pitch: 0,
+      expansion: { maxRadiusMeters: 200, durationMs: 1200, cameraFollow: true },
+    })
+
+    assert.equal(viewer.camera.flyToBoundingSphereCount, 1)
+    assert.equal(viewer.camera.visibilityChecks.length, 1)
+    assert.equal(viewer.camera.flights[0].options.duration, 1.2)
+    assert.equal(viewer.camera.flights[0].options.offset.heading, 0.73)
+    assert.equal(viewer.camera.flights[0].options.offset.pitch, -0.41)
+    assert.equal(viewer.canvas.listenerCount(), 3)
+
+    const visibilitySphere = viewer.camera.visibilityChecks[0]
+    assert.ok(Math.abs(visibilitySphere.radius - Math.hypot(200, 300)) < 1e-7)
+    const expectedCenter = Cartesian3.fromDegrees(center.longitude, center.latitude, 300)
+    assert.ok(Cartesian3.distance(visibilitySphere.center, expectedCenter) < 1e-5)
+    assert.ok(viewer.camera.flights[0].sphere.radius >= visibilitySphere.radius * 1.15)
+    assert.ok(viewer.camera.flights[0].sphere.radius <= visibilitySphere.radius * 1.2)
+  }
+})
+
+test('ScanConeEffect camera follow yields to pointer or wheel without stopping expansion and restart allows it again', () => {
+  for (const eventType of ['pointerdown', 'wheel']) {
+    const viewer = createMockViewer({ visibility: Intersect.OUTSIDE })
+    const effect = createScanConeEffect(viewer, {
+      center,
+      expansion: { maxRadiusMeters: 200, durationMs: 1000, cameraFollow: true },
+    })
+
+    viewer.canvas.dispatch(eventType)
+    assert.equal(viewer.camera.cancelFlightCount, 1)
+    assert.equal(effect.getExpansionState().status, 'running')
+    assert.equal(viewer.canvas.listenerCount(), 0)
+
+    effect.restartExpansion()
+    assert.equal(viewer.camera.flyToBoundingSphereCount, 2)
+    assert.equal(viewer.canvas.listenerCount(), 3)
+  }
+})
+
+test('ScanConeEffect camera follow cleans listeners on completion, cancel, hide, and destroy', () => {
+  const raf = installRafHarness()
+  try {
+    const completedViewer = createMockViewer({ visibility: Intersect.OUTSIDE })
+    createScanConeEffect(completedViewer, {
+      center,
+      expansion: { maxRadiusMeters: 200, durationMs: 100, cameraFollow: true },
+    })
+    raf.step(0)
+    raf.step(100)
+    assert.equal(completedViewer.canvas.listenerCount(), 0)
+
+    const cancelledViewer = createMockViewer({ visibility: Intersect.OUTSIDE })
+    const cancelledEffect = createScanConeEffect(cancelledViewer, {
+      center,
+      expansion: { maxRadiusMeters: 200, durationMs: 1000, cameraFollow: true },
+    })
+    cancelledEffect.cancelExpansion()
+    assert.equal(cancelledViewer.canvas.listenerCount(), 0)
+    assert.equal(cancelledViewer.camera.cancelFlightCount, 1)
+
+    const hiddenViewer = createMockViewer({ visibility: Intersect.OUTSIDE })
+    const hiddenEffect = createScanConeEffect(hiddenViewer, {
+      center,
+      expansion: { maxRadiusMeters: 200, durationMs: 1000, cameraFollow: true },
+    })
+    hiddenEffect.hide()
+    assert.equal(hiddenViewer.canvas.listenerCount(), 0)
+    assert.equal(hiddenViewer.camera.cancelFlightCount, 1)
+
+    const destroyedViewer = createMockViewer({ visibility: Intersect.OUTSIDE })
+    const destroyedEffect = createScanConeEffect(destroyedViewer, {
+      center,
+      expansion: { maxRadiusMeters: 200, durationMs: 1000, cameraFollow: true },
+    })
+    destroyedEffect.destroy()
+    assert.equal(destroyedViewer.canvas.listenerCount(), 0)
+    assert.equal(destroyedViewer.camera.cancelFlightCount, 1)
+  } finally {
+    raf.restore()
+  }
+})
+
+test('ScanConeEffect camera follow resumes after hide with remaining duration unless the user took over', () => {
+  const raf = installRafHarness()
+  try {
+    const viewer = createMockViewer({ visibility: Intersect.OUTSIDE })
+    const effect = createScanConeEffect(viewer, {
+      center,
+      expansion: { maxRadiusMeters: 200, durationMs: 2000, cameraFollow: true },
+    })
+    raf.step(0)
+    raf.step(750)
+    effect.hide()
+    effect.show()
+    assert.equal(viewer.camera.flyToBoundingSphereCount, 2)
+    assert.equal(viewer.camera.flights[1].options.duration, 1.25)
+
+    viewer.canvas.dispatch('touchstart')
+    effect.hide()
+    effect.show()
+    assert.equal(viewer.camera.flyToBoundingSphereCount, 2)
+  } finally {
+    raf.restore()
+  }
+})
+
+test('ScanConeEffect camera follow does not launch camera flights per animation frame', () => {
+  const raf = installRafHarness()
+  try {
+    const viewer = createMockViewer({ visibility: Intersect.OUTSIDE })
+    createScanConeEffect(viewer, {
+      center,
+      expansion: { maxRadiusMeters: 200, durationMs: 1000, cameraFollow: true },
+    })
+    raf.step(0)
+    raf.step(200)
+    raf.step(400)
+    raf.step(600)
+    assert.equal(viewer.camera.flyToBoundingSphereCount, 1)
+    assert.equal(viewer.camera.visibilityChecks.length, 1)
+  } finally {
+    raf.restore()
+  }
+})
+
+test('ScanConeEffect explicit flyTo replaces camera follow without letting hide cancel the explicit flight', () => {
+  const viewer = createMockViewer({ visibility: Intersect.OUTSIDE })
+  const effect = createScanConeEffect(viewer, {
+    center,
+    expansion: { maxRadiusMeters: 200, durationMs: 1000, cameraFollow: true },
+  })
+
+  effect.flyTo({ duration: 0.4 })
+  assert.equal(viewer.camera.flyToBoundingSphereCount, 2)
+  assert.equal(viewer.camera.cancelFlightCount, 1)
+  assert.equal(viewer.canvas.listenerCount(), 0)
+
+  effect.hide()
+  assert.equal(viewer.camera.cancelFlightCount, 1)
+})
+
+function createMockViewer({ visibility = Intersect.INSIDE, heading = 0.4, pitch = -0.5 } = {}) {
+  const canvas = createMockCanvas()
+  const visibilityChecks = []
   return {
+    canvas,
     scene: {
       requestRenderCount: 0,
       requestRender() {
@@ -705,10 +882,54 @@ function createMockViewer() {
       },
     },
     camera: {
-      flyToBoundingSphereCount: 0,
-      flyToBoundingSphere() {
-        this.flyToBoundingSphereCount += 1
+      frustum: {
+        computeCullingVolume() {
+          return {
+            computeVisibility(sphere) {
+              visibilityChecks.push(sphere)
+              return visibility
+            },
+          }
+        },
       },
+      position: new Cartesian3(1, 2, 3),
+      direction: new Cartesian3(0, 0, -1),
+      up: new Cartesian3(0, 1, 0),
+      heading,
+      pitch,
+      flyToBoundingSphereCount: 0,
+      cancelFlightCount: 0,
+      flights: [],
+      visibilityChecks,
+      flyToBoundingSphere(sphere, options) {
+        this.flyToBoundingSphereCount += 1
+        this.flights.push({ sphere, options })
+      },
+      cancelFlight() {
+        this.cancelFlightCount += 1
+      },
+    },
+  }
+}
+
+function createMockCanvas() {
+  const listeners = new Map()
+  return {
+    addEventListener(type, listener) {
+      const eventListeners = listeners.get(type) ?? new Set()
+      eventListeners.add(listener)
+      listeners.set(type, eventListeners)
+    },
+    removeEventListener(type, listener) {
+      const eventListeners = listeners.get(type)
+      eventListeners?.delete(listener)
+      if (eventListeners?.size === 0) listeners.delete(type)
+    },
+    dispatch(type) {
+      for (const listener of [...(listeners.get(type) ?? [])]) listener({ type })
+    },
+    listenerCount() {
+      return [...listeners.values()].reduce((total, eventListeners) => total + eventListeners.size, 0)
     },
   }
 }

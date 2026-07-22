@@ -21,6 +21,7 @@ import {
   HeadingPitchRange,
   HeightReference,
   HorizontalOrigin,
+  Intersect,
   Material,
   MaterialAppearance,
   Math as CesiumMath,
@@ -4244,8 +4245,17 @@ export class ScanConeEffect implements ScanConeEffectInstance {
   private expansionPreviousTimestamp: number | null = null
   private pausedByVisibility = false
   private completionNotified = false
+  private cameraFollowPlanned = false
+  private cameraFollowCancelledByUser = false
+  private cameraFollowListenersAttached = false
   private renderFrame = 0
   private destroyed = false
+
+  private readonly handleCameraFollowUserInput = (): void => {
+    if (!this.cameraFollowListenersAttached) return
+    this.cameraFollowCancelledByUser = true
+    this.stopExpansionCameraFollow(true)
+  }
 
   constructor(viewer: Viewer, options: ScanConeOptions) {
     this.viewer = viewer
@@ -4255,6 +4265,7 @@ export class ScanConeEffect implements ScanConeEffectInstance {
     this.viewer.dataSources.add(this.dataSource)
     this.resetExpansionState()
     this.renderCurrentPath()
+    this.startExpansionCameraFollow(this.getExpansionRemainingDurationMs())
     this.startRenderLoop()
     this.viewer.scene.requestRender()
   }
@@ -4276,12 +4287,17 @@ export class ScanConeEffect implements ScanConeEffectInstance {
       previous.expansion?.maxRadiusMeters !== next.expansion?.maxRadiusMeters ||
       previous.expansion?.durationMs !== next.expansion?.durationMs
     )
+    const cameraFollowChanged = previous.expansion?.cameraFollow !== next.expansion?.cameraFollow
     const rebuildEntities = !next.expansion && shouldRebuildScanCone(previous, next)
+    if (modeChanged) this.stopExpansionCameraFollow(true)
     this.options = next
 
     if (modeChanged) {
+      this.cameraFollowPlanned = false
+      this.cameraFollowCancelledByUser = false
       this.resetExpansionState()
       this.renderCurrentPath()
+      this.startExpansionCameraFollow(this.getExpansionRemainingDurationMs())
     } else if (rebuildEntities) {
       this.renderEntities()
     } else {
@@ -4289,6 +4305,13 @@ export class ScanConeEffect implements ScanConeEffectInstance {
       this.syncOriginEntity()
       if (restartExpansion) this.restartExpansion()
       else if (this.options.expansion) this.updatePrimitiveModelMatrix(getAnimationSeconds())
+    }
+
+    if (!modeChanged && !restartExpansion && cameraFollowChanged) {
+      this.stopExpansionCameraFollow(true)
+      this.cameraFollowPlanned = false
+      this.cameraFollowCancelledByUser = false
+      this.startExpansionCameraFollow(this.getExpansionRemainingDurationMs())
     }
 
     this.dataSource.show = this.options.visible
@@ -4305,11 +4328,15 @@ export class ScanConeEffect implements ScanConeEffectInstance {
   restartExpansion(): void {
     if (this.destroyed || !this.options.expansion) return
 
+    this.stopExpansionCameraFollow(true)
+    this.cameraFollowPlanned = false
+    this.cameraFollowCancelledByUser = false
     this.expansionState = createInitialScanConeExpansionState(this.options.visible ? 'running' : 'paused')
     this.expansionPreviousTimestamp = null
     this.pausedByVisibility = !this.options.visible
     this.completionNotified = false
     this.updatePrimitiveModelMatrix(getAnimationSeconds())
+    this.startExpansionCameraFollow(this.getExpansionRemainingDurationMs())
     if (this.options.visible) this.startRenderLoop()
     this.viewer.scene.requestRender()
   }
@@ -4321,6 +4348,7 @@ export class ScanConeEffect implements ScanConeEffectInstance {
     this.expansionState = { ...this.expansionState, status: 'cancelled' }
     this.expansionPreviousTimestamp = null
     this.pausedByVisibility = false
+    this.stopExpansionCameraFollow(true)
   }
 
   isExpanding(): boolean {
@@ -4354,6 +4382,10 @@ export class ScanConeEffect implements ScanConeEffectInstance {
   flyTo(options: ScanConeFlyToOptions = {}): void {
     if (this.destroyed) return
 
+    if (this.cameraFollowListenersAttached) {
+      this.cameraFollowCancelledByUser = true
+      this.stopExpansionCameraFollow(true)
+    }
     const center = this.getOriginCartesian()
     const radius = Math.max(this.options.radiusMeters, this.options.lengthMeters)
     this.viewer.camera.flyToBoundingSphere(new BoundingSphere(center, radius), {
@@ -4365,6 +4397,7 @@ export class ScanConeEffect implements ScanConeEffectInstance {
   destroy(): void {
     if (this.destroyed) return
 
+    this.stopExpansionCameraFollow(true)
     this.destroyed = true
     this.stopRenderLoop()
     this.removeConePrimitive()
@@ -4588,6 +4621,7 @@ export class ScanConeEffect implements ScanConeEffectInstance {
     const callbackState = { ...this.expansionState }
     const notifyCompletion = completed && !this.completionNotified
     if (notifyCompletion) this.completionNotified = true
+    if (completed) this.stopExpansionCameraFollow(false)
     expansion.onFrame?.(callbackState)
     if (notifyCompletion) expansion.onComplete?.({ ...callbackState })
     return true
@@ -4598,6 +4632,8 @@ export class ScanConeEffect implements ScanConeEffectInstance {
     this.expansionState = { ...this.expansionState, status: 'paused' }
     this.expansionPreviousTimestamp = null
     this.pausedByVisibility = true
+    this.stopExpansionCameraFollow(true)
+    this.cameraFollowPlanned = false
   }
 
   private resumeExpansionAfterVisibilityPause(): void {
@@ -4605,6 +4641,79 @@ export class ScanConeEffect implements ScanConeEffectInstance {
     this.expansionState = { ...this.expansionState, status: 'running' }
     this.expansionPreviousTimestamp = null
     this.pausedByVisibility = false
+    this.startExpansionCameraFollow(this.getExpansionRemainingDurationMs())
+  }
+
+  private getExpansionRemainingDurationMs(): number {
+    if (!this.options.expansion) return 0
+    return Math.max(0, this.options.expansion.durationMs - this.expansionState.elapsedMs)
+  }
+
+  private startExpansionCameraFollow(durationMs: number): void {
+    const expansion = this.options.expansion
+    if (
+      !expansion?.cameraFollow ||
+      !this.options.visible ||
+      this.expansionState.status !== 'running' ||
+      this.cameraFollowPlanned ||
+      this.cameraFollowCancelledByUser ||
+      durationMs <= 0
+    ) return
+
+    this.cameraFollowPlanned = true
+    const sphere = this.createFinalExpansionBoundingSphere(durationMs)
+    const camera = this.viewer.camera
+    const position = camera.positionWC ?? camera.position
+    const direction = camera.directionWC ?? camera.direction
+    const up = camera.upWC ?? camera.up
+    const visibility = camera.frustum
+      .computeCullingVolume(position, direction, up)
+      .computeVisibility(sphere)
+    if (visibility === Intersect.INSIDE) return
+
+    const heading = Number.isFinite(camera.heading) ? camera.heading : 0
+    const pitch = Number.isFinite(camera.pitch)
+      ? clamp(camera.pitch, -CesiumMath.PI_OVER_TWO + 0.01, CesiumMath.PI_OVER_TWO - 0.01)
+      : -CesiumMath.PI_OVER_FOUR
+    const framedSphere = new BoundingSphere(sphere.center, sphere.radius * 1.18)
+    this.attachCameraFollowListeners()
+    camera.flyToBoundingSphere(framedSphere, {
+      duration: durationMs / 1000,
+      offset: new HeadingPitchRange(heading, pitch, 0),
+    })
+  }
+
+  private createFinalExpansionBoundingSphere(durationMs: number): BoundingSphere {
+    const expansion = this.options.expansion
+    const radius = expansion?.maxRadiusMeters ?? this.options.radiusMeters
+    const length = this.options.lengthMeters
+    const finalHeading = this.options.heading +
+      (getAnimationSeconds() + durationMs / 1000) * this.options.speed * 36
+    const headingPitchRoll = HeadingPitchRoll.fromDegrees(finalHeading, this.options.pitch, 0)
+    const transform = Transforms.headingPitchRollToFixedFrame(
+      this.getOriginCartesian(),
+      headingPitchRoll,
+    )
+    const localCenter = new Cartesian3(0, 0, length / 2)
+    const center = Matrix4.multiplyByPoint(transform, localCenter, new Cartesian3())
+    return new BoundingSphere(center, Math.hypot(radius, length / 2))
+  }
+
+  private attachCameraFollowListeners(): void {
+    if (this.cameraFollowListenersAttached) return
+    this.cameraFollowListenersAttached = true
+    this.viewer.canvas.addEventListener('pointerdown', this.handleCameraFollowUserInput)
+    this.viewer.canvas.addEventListener('wheel', this.handleCameraFollowUserInput)
+    this.viewer.canvas.addEventListener('touchstart', this.handleCameraFollowUserInput)
+  }
+
+  private stopExpansionCameraFollow(cancelFlight: boolean): void {
+    if (!this.cameraFollowListenersAttached) return
+    this.viewer.canvas.removeEventListener('pointerdown', this.handleCameraFollowUserInput)
+    this.viewer.canvas.removeEventListener('wheel', this.handleCameraFollowUserInput)
+    this.viewer.canvas.removeEventListener('touchstart', this.handleCameraFollowUserInput)
+    this.cameraFollowListenersAttached = false
+    if (cancelFlight) this.viewer.camera.cancelFlight()
   }
 
   private createPrimitiveModelMatrix(
