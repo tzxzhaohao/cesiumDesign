@@ -45,6 +45,7 @@ test('normalizeScanConeExpansionOptions applies safe defaults and preserves call
   assert.equal(options.onComplete, onComplete)
   assert.equal(normalizeScanConeExpansionOptions({ maxRadiusMeters: 2, durationMs: 1 }).durationMs, 100)
   assert.equal(normalizeScanConeExpansionOptions({ maxRadiusMeters: 2, durationMs: 120001 }).durationMs, 120000)
+  assert.equal(normalizeScanConeExpansionOptions({ maxRadiusMeters: 0.001 }).maxRadiusMeters, 1)
 })
 
 test('normalizeScanConeOptions only normalizes expansion when configured', () => {
@@ -78,12 +79,27 @@ test('sampleScanConeExpansionFrame shares cubic easing between radius and length
     lengthMeters: 300,
     elapsedMs: 500,
   })
+  assert.deepEqual(sampleScanConeExpansionFrame(options, 600, 250), {
+    progress: 0.0625,
+    radiusMeters: 12.5,
+    lengthMeters: 37.5,
+    elapsedMs: 250,
+  })
+  assert.deepEqual(sampleScanConeExpansionFrame(options, 600, 750), {
+    progress: 0.9375,
+    radiusMeters: 187.5,
+    lengthMeters: 562.5,
+    elapsedMs: 750,
+  })
   assert.deepEqual(sampleScanConeExpansionFrame(options, 600, Number.POSITIVE_INFINITY), {
     progress: 1,
     radiusMeters: 200,
     lengthMeters: 600,
     elapsedMs: 1000,
   })
+  for (const invalidLength of [Number.NaN, -1, 0.001]) {
+    assert.equal(sampleScanConeExpansionFrame(options, invalidLength, 1000).lengthMeters, 1)
+  }
 })
 
 test('normalizeScanConeOptions fills rotating searchlight defaults', () => {

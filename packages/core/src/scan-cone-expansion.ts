@@ -33,7 +33,7 @@ export function normalizeScanConeExpansionOptions(
   options: ScanConeExpansionOptions,
 ): NormalizedScanConeExpansionOptions {
   const maxRadiusMeters = Number.isFinite(options.maxRadiusMeters) && options.maxRadiusMeters > 0
-    ? options.maxRadiusMeters
+    ? Math.max(1, options.maxRadiusMeters)
     : 1
   const requestedDurationMs = options.durationMs
   const durationMs = requestedDurationMs !== undefined && Number.isFinite(requestedDurationMs)
@@ -58,7 +58,9 @@ export function sampleScanConeExpansionFrame(
   const safeElapsedMs = clampElapsedMs(elapsedMs, options.durationMs)
   const linearProgress = safeElapsedMs / options.durationMs
   const progress = easeInOutCubic(linearProgress)
-  const safeLengthMeters = Number.isFinite(finalLengthMeters) && finalLengthMeters > 0 ? finalLengthMeters : 0
+  const safeLengthMeters = Number.isFinite(finalLengthMeters) && finalLengthMeters > 0
+    ? Math.max(1, finalLengthMeters)
+    : 1
 
   return {
     progress,

@@ -43,10 +43,7 @@ import { decompressFrames, parseGIF, type ParsedFrame } from 'gifuct-js'
 import { normalizeScanConeExpansionOptions } from './scan-cone-expansion.js'
 import type {
   NormalizedScanConeExpansionOptions,
-  ScanConeExpansionFrame,
   ScanConeExpansionOptions,
-  ScanConeExpansionState,
-  ScanConeExpansionStatus,
 } from './scan-cone-expansion.js'
 
 export type {
