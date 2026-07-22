@@ -51,8 +51,8 @@ const cone = createScanConeEffect(viewer, {
   },
 })
 
-// 页面、图层或 Viewer 销毁前调用。
-cone.destroy()
+// 在页面、图层或 Viewer 的生命周期清理函数中调用：
+// cone.destroy()
 ```
 
 `durationMs` 默认 `4500` 毫秒，可用范围为 `100` 到 `120000` 毫秒。`autoStart` 默认 `true`；如果设为 `false`，创建后调用 `restartExpansion()` 才开始扩散。
@@ -107,7 +107,9 @@ cone.destroy()
 
 ## 智能镜头边界
 
-`cameraFollow` 默认是 `false`。只有显式设为 `true` 时，SDK 才会在最终锥体超出视野时安排一次镜头拉远。用户通过鼠标、滚轮或触摸接管镜头后，本轮扩散仍继续，SDK 不会再次抢回镜头；下一次 `restartExpansion()` 才重新允许智能跟随。若宿主需要完全控制镜头，请保持默认值并自行调用 `flyTo()`。
+`cameraFollow` 默认是 `false`。只有显式设为 `true` 时，SDK 才会在最终锥体超出视野时安排一次镜头拉远。用户通过鼠标、滚轮或触摸接管镜头后，本轮扩散仍继续，SDK 不会再次抢回镜头；下一次 `restartExpansion()` 才重新允许智能跟随。
+
+若宿主需要完全控制镜头，请保持默认值，并直接通过 Cesium `viewer.camera` 安排镜头位置。普通 `cone.flyTo()` 只按静态 `radiusMeters` 与 `lengthMeters` 估算范围，不读取 `expansion.maxRadiusMeters`，因此不保证能完整容纳更大的扩散终态。
 
 ## 类型建议
 

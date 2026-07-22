@@ -219,6 +219,7 @@ test('getUsageExample returns scan-cone smooth expansion callbacks', async () =>
   assert.match(cone.code, /maxRadiusMeters/)
   assert.match(cone.code, /cameraFollow/)
   assert.match(cone.code, /onFrame/)
+  assert.doesNotMatch(cone.code, /createScanConeEffect[\s\S]*\ncone\.destroy\(\)/)
 })
 
 test('getUsageExample returns the temperature field FireHotspot snippet', async () => {

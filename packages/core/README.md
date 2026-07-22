@@ -64,7 +64,8 @@ const cone = createScanConeEffect(viewer, {
   },
 })
 
-cone.destroy()
+// Call from the page or layer cleanup lifecycle:
+// cone.destroy()
 ```
 
 ## Documentation

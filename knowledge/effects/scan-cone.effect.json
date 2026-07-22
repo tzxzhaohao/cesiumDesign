@@ -31,7 +31,7 @@
         "type": "number",
         "default": 1800,
         "minimum": 1,
-        "description": "Static cone bottom radius in meters when expansion is omitted."
+        "description": "Minimum static bottom radius in meters when expansion is omitted. The aperture and lengthMeters can make the actual static bottom radius larger."
       },
       "lengthMeters": {
         "type": "number",
@@ -113,11 +113,11 @@
   "examples": {
     "minimal": {
       "language": "ts",
-      "code": "import { createScanConeEffect } from '@ztgkzhaohao/geo-effect-kit'\n\nconst cone = createScanConeEffect(viewer, {\n  center: { longitude: 116.391, latitude: 39.907 },\n  type: 'searchlight',\n  color: '#7cf7ff',\n  lengthMeters: 6200,\n  speed: 1.2,\n  aperture: 38,\n  expansion: {\n    maxRadiusMeters: 2200,\n    durationMs: 4500,\n    cameraFollow: false,\n    onFrame: (frame) => {\n      console.log(frame.progress, frame.radiusMeters, frame.lengthMeters)\n    },\n  },\n})\n\ncone.flyTo()\n// Later, when leaving the page or replacing the layer:\ncone.destroy()\n"
+      "code": "import { createScanConeEffect } from '@ztgkzhaohao/geo-effect-kit'\n\nconst cone = createScanConeEffect(viewer, {\n  center: { longitude: 116.391, latitude: 39.907 },\n  type: 'searchlight',\n  color: '#7cf7ff',\n  lengthMeters: 6200,\n  speed: 1.2,\n  aperture: 38,\n  expansion: {\n    maxRadiusMeters: 2200,\n    durationMs: 4500,\n    cameraFollow: false,\n    onFrame: (frame) => {\n      console.log(frame.progress, frame.radiusMeters, frame.lengthMeters)\n    },\n  },\n})\n\n// Call from the page or layer cleanup lifecycle:\n// cone.destroy()\n"
     },
     "update": {
       "language": "ts",
-      "code": "cone.update({\n  type: 'alarm',\n  color: '#ff315a',\n  speed: 2.6,\n  heading: 45,\n  showOrigin: false,\n  expansion: {\n    maxRadiusMeters: 4800,\n    durationMs: 6000,\n    cameraFollow: false,\n    onFrame: (frame) => console.log(frame.radiusMeters),\n  },\n})\n\ncone.restartExpansion()\n"
+      "code": "// Changing dimensions or duration automatically restarts expansion.\ncone.update({\n  type: 'alarm',\n  color: '#ff315a',\n  speed: 2.6,\n  heading: 45,\n  showOrigin: false,\n  expansion: {\n    maxRadiusMeters: 4800,\n    durationMs: 6000,\n    cameraFollow: false,\n    onFrame: (frame) => console.log(frame.radiusMeters),\n  },\n})\n"
     }
   },
   "notes": [
