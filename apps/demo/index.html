@@ -161,6 +161,10 @@
                 <option value="alarm">alarm</option>
               </select>
             </label>
+            <label id="coneExpansionField" class="check-row" hidden>
+              <input id="coneExpansion" type="checkbox" checked />
+              <span>Smooth expansion</span>
+            </label>
             <label id="domeTypeField" hidden>
               <span>Dome type</span>
               <select id="domeType">
@@ -219,6 +223,16 @@
               <span>Length</span>
               <input id="length" type="range" min="1000" max="14000" step="100" value="6200" />
               <output id="lengthValue">6,200 m</output>
+            </label>
+            <label id="coneMaxRadiusField" hidden>
+              <span>Expansion radius</span>
+              <input id="coneMaxRadius" type="range" min="1000" max="90000" step="1000" value="20000" />
+              <output id="coneMaxRadiusValue">20,000 m</output>
+            </label>
+            <label id="coneExpansionDurationField" hidden>
+              <span>Expansion duration</span>
+              <input id="coneExpansionDuration" type="range" min="1000" max="12000" step="100" value="4500" />
+              <output id="coneExpansionDurationValue">4,500 ms</output>
             </label>
             <label id="speedField" hidden>
               <span>Speed</span>
@@ -360,6 +374,15 @@
               <input id="origin" type="checkbox" checked />
               <span>Show origin point</span>
             </label>
+            <label id="coneCameraFollowField" class="check-row" hidden>
+              <input id="coneCameraFollow" type="checkbox" checked />
+              <span>Smart camera follow</span>
+            </label>
+            <div id="coneExpansionActions" class="cone-expansion-actions" hidden>
+              <button id="restartConeExpansion" class="cone-expansion-action" type="button">Restart expansion</button>
+              <button id="cancelConeExpansion" class="cone-expansion-action" type="button">Cancel expansion</button>
+              <output id="coneExpansionState" class="cone-expansion-status" aria-live="polite" aria-atomic="true">status ready · radius 0 m · height 0 m · 0%</output>
+            </div>
             <label id="domeRingField" class="check-row" hidden>
               <input id="domeRing" type="checkbox" checked />
               <span>Show base ring</span>

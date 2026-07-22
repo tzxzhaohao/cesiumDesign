@@ -57,6 +57,7 @@ import {
   type RadarScanType,
   type RippleSpreadEffectInstance,
   type RippleSpreadType,
+  type ScanConeExpansionFrame,
   type ScanConeEffectInstance,
   type ScanConeType,
   type SceneWeatherEffectInstance,
@@ -176,6 +177,11 @@ type ControlId =
   | 'flyModeField'
   | 'wallTypeField'
   | 'coneTypeField'
+  | 'coneExpansionField'
+  | 'coneMaxRadiusField'
+  | 'coneExpansionDurationField'
+  | 'coneCameraFollowField'
+  | 'coneExpansionActions'
   | 'domeTypeField'
   | 'weatherTypeField'
   | 'postProcessTypeField'
@@ -803,6 +809,13 @@ const elements = {
   flyMode: getSelect('flyMode'),
   wallType: getSelect('wallType'),
   coneType: getSelect('coneType'),
+  coneExpansion: getInput('coneExpansion'),
+  coneMaxRadius: getInput('coneMaxRadius'),
+  coneExpansionDuration: getInput('coneExpansionDuration'),
+  coneCameraFollow: getInput('coneCameraFollow'),
+  restartConeExpansion: getButton('restartConeExpansion'),
+  cancelConeExpansion: getButton('cancelConeExpansion'),
+  coneExpansionState: getElement('coneExpansionState'),
   domeType: getSelect('domeType'),
   weatherType: getSelect('weatherType'),
   postProcessType: getSelect('postProcessType'),
@@ -873,6 +886,8 @@ const elements = {
   windDirectionValue: getElement('windDirectionValue'),
   apertureValue: getElement('apertureValue'),
   opacityValue: getElement('opacityValue'),
+  coneMaxRadiusValue: getElement('coneMaxRadiusValue'),
+  coneExpansionDurationValue: getElement('coneExpansionDurationValue'),
   codeExample: getElement('codeExample'),
   notesPanel: getElement('notesPanel'),
 }
@@ -887,6 +902,11 @@ const controlFields: Record<ControlId, HTMLElement> = {
   flyModeField: getElement('flyModeField'),
   wallTypeField: getElement('wallTypeField'),
   coneTypeField: getElement('coneTypeField'),
+  coneExpansionField: getElement('coneExpansionField'),
+  coneMaxRadiusField: getElement('coneMaxRadiusField'),
+  coneExpansionDurationField: getElement('coneExpansionDurationField'),
+  coneCameraFollowField: getElement('coneCameraFollowField'),
+  coneExpansionActions: getElement('coneExpansionActions'),
   domeTypeField: getElement('domeTypeField'),
   weatherTypeField: getElement('weatherTypeField'),
   postProcessTypeField: getElement('postProcessTypeField'),
@@ -1028,11 +1048,12 @@ const effectCopy: Record<EffectId, { title: string; description: string; notes: 
   },
   'scan-cone': {
     title: 'Scan Cone',
-    description: 'Rotating volumetric cone for searchlights, radar beams, cameras, drones, and alarm ranges.',
+    description: 'Rotating volumetric cone with a smooth radius-and-height expansion for searchlights, radar beams, cameras, drones, and alarm ranges.',
     notes: [
       'Use createScanConeEffect(viewer, options) when a point needs a 3D coverage or detection volume.',
       'type switches searchlight, radar, camera, drone, and alarm cone materials.',
-      'heading sets the starting direction while speed drives continuous rotation.',
+      'Smooth expansion grows radius and height together; max radius and duration update the active run.',
+      'Smart camera follow frames the growing cone and yields as soon as the viewer takes control.',
     ],
   },
   'route-scan': {
@@ -1098,6 +1119,9 @@ document.querySelectorAll<HTMLButtonElement>('.template-tab').forEach((button) =
   elements.flyMode,
   elements.wallType,
   elements.coneType,
+  elements.coneMaxRadius,
+  elements.coneExpansionDuration,
+  elements.coneCameraFollow,
   elements.domeType,
   elements.weatherType,
   elements.postProcessType,
@@ -1141,6 +1165,24 @@ document.querySelectorAll<HTMLButtonElement>('.template-tab').forEach((button) =
   input.addEventListener('change', syncEffect)
 })
 
+elements.coneExpansion.addEventListener('change', recreateActiveScanConeEffect)
+
+elements.restartConeExpansion.addEventListener('click', () => {
+  const cone = getActiveScanConeEffect()
+  if (!cone || !elements.coneExpansion.checked) return
+  cone.restartExpansion()
+  const state = cone.getExpansionState()
+  syncConeExpansionState(state, state.status)
+})
+
+elements.cancelConeExpansion.addEventListener('click', () => {
+  const cone = getActiveScanConeEffect()
+  if (!cone || !elements.coneExpansion.checked) return
+  cone.cancelExpansion()
+  const state = cone.getExpansionState()
+  syncConeExpansionState(state, state.status)
+})
+
 getElement('flyTo').addEventListener('click', () => {
   if (activeEffectId === 'water-surface') flyToWaterSurface()
   else if (activeEffectId === 'material-polyline') flyToMaterialPolyline()
@@ -1182,7 +1224,11 @@ function switchEffect(effectId: EffectId): void {
   syncEffect()
   if (effectId === 'water-surface') flyToWaterSurface()
   else if (effectId === 'material-polyline') flyToMaterialPolyline()
-  else activeEffect?.flyTo()
+  else if (!shouldSkipAutomaticFlyTo(effectId)) activeEffect?.flyTo()
+}
+
+function shouldSkipAutomaticFlyTo(effectId: EffectId): boolean {
+  return effectId === 'scan-cone' && elements.coneExpansion.checked && elements.coneCameraFollow.checked
 }
 
 function createEffect(effectId: EffectId): ActiveEffect {
@@ -1286,6 +1332,7 @@ function createEffect(effectId: EffectId): ActiveEffect {
   }
 
   if (effectId === 'scan-cone') {
+    const expansion = getScanConeExpansionOptions()
     return createScanConeEffect(viewer, {
       center,
       type: elements.coneType.value as ScanConeType,
@@ -1297,6 +1344,7 @@ function createEffect(effectId: EffectId): ActiveEffect {
       aperture: numberValue(elements.aperture),
       heading: numberValue(elements.heading),
       showOrigin: elements.origin.checked,
+      ...(expansion ? { expansion } : {}),
     })
   }
 
@@ -1850,6 +1898,56 @@ function flyToWaterSurface(): void {
   })
 }
 
+function getScanConeExpansionOptions() {
+  if (!elements.coneExpansion.checked) return undefined
+
+  return {
+    maxRadiusMeters: numberValue(elements.coneMaxRadius),
+    durationMs: numberValue(elements.coneExpansionDuration),
+    cameraFollow: elements.coneCameraFollow.checked,
+    autoStart: true,
+    onFrame: (frame: ScanConeExpansionFrame & { status: string }) => syncConeExpansionState(frame, frame.status),
+    onComplete: (frame: ScanConeExpansionFrame & { status: string }) => syncConeExpansionState(frame, frame.status),
+  }
+}
+
+function syncConeExpansionState(frame: ScanConeExpansionFrame, status: string): void {
+  const progress = Math.round(frame.progress * 100)
+  const radius = Math.round(frame.radiusMeters).toLocaleString()
+  const height = Math.round(frame.lengthMeters).toLocaleString()
+  elements.coneExpansionState.textContent = `status ${status} · radius ${radius} m · height ${height} m · ${progress}%`
+}
+
+function syncStaticConeExpansionState(): void {
+  syncConeExpansionState({
+    progress: 1,
+    radiusMeters: numberValue(elements.radius),
+    lengthMeters: numberValue(elements.length),
+    elapsedMs: 0,
+  }, 'static')
+}
+
+function recreateActiveScanConeEffect(): void {
+  if (activeEffectId !== 'scan-cone') return
+
+  activeEffect?.destroy()
+  activeEffect = createEffect('scan-cone')
+  syncOutputs()
+  if (elements.coneExpansion.checked) {
+    const cone = getActiveScanConeEffect()
+    const state = cone?.getExpansionState()
+    if (state) syncConeExpansionState(state, state.status)
+  } else {
+    syncStaticConeExpansionState()
+  }
+  syncCopy()
+}
+
+function getActiveScanConeEffect(): ScanConeEffectInstance | null {
+  if (activeEffectId !== 'scan-cone' || !activeEffect) return null
+  return activeEffect as ScanConeEffectInstance
+}
+
 function syncEffect(): void {
   syncOutputs()
 
@@ -1965,6 +2063,7 @@ function syncEffect(): void {
       outline: elements.outline.checked,
     })
   } else if (activeEffectId === 'scan-cone') {
+    const expansion = getScanConeExpansionOptions()
     activeEffect?.update({
       type: elements.coneType.value as ScanConeType,
       color: elements.color.value,
@@ -1975,7 +2074,15 @@ function syncEffect(): void {
       aperture: numberValue(elements.aperture),
       heading: numberValue(elements.heading),
       showOrigin: elements.origin.checked,
+      ...(expansion ? { expansion } : {}),
     })
+    const cone = getActiveScanConeEffect()
+    if (expansion && cone) {
+      const state = cone.getExpansionState()
+      syncConeExpansionState(state, state.status)
+    } else {
+      syncStaticConeExpansionState()
+    }
   } else if (activeEffectId === 'route-scan') {
     activeEffect?.update({
       scanMode: getRouteScanMode(),
@@ -2131,6 +2238,10 @@ function setDefaults(effectId: EffectId): void {
   } else if (effectId === 'scan-cone') {
     elements.color.value = '#7cf7ff'
     elements.coneType.value = 'searchlight'
+    elements.coneExpansion.checked = true
+    elements.coneMaxRadius.value = '20000'
+    elements.coneExpansionDuration.value = '4500'
+    elements.coneCameraFollow.checked = true
     elements.length.value = '6200'
     elements.opacity.value = '1'
     elements.aperture.value = '38'
@@ -2197,7 +2308,22 @@ function syncVisibleControls(effectId: EffectId): void {
       'outlineField',
     ],
     'light-wall': ['colorField', 'wallTypeField', 'heightField', 'speedField', 'opacityField', 'scanLineCountField', 'breathingField', 'outlineField'],
-    'scan-cone': ['colorField', 'coneTypeField', 'radiusField', 'lengthField', 'speedField', 'opacityField', 'headingField', 'apertureField', 'originField'],
+    'scan-cone': [
+      'colorField',
+      'coneTypeField',
+      'coneExpansionField',
+      'radiusField',
+      'coneMaxRadiusField',
+      'lengthField',
+      'coneExpansionDurationField',
+      'speedField',
+      'opacityField',
+      'headingField',
+      'apertureField',
+      'originField',
+      'coneCameraFollowField',
+      'coneExpansionActions',
+    ],
     'route-scan': [
       'colorField',
       'radarTypeField',
@@ -2234,12 +2360,14 @@ function syncRadarTypeOptions(effectId: EffectId): void {
 
 function syncOutputs(): void {
   elements.radiusValue.textContent = `${numberValue(elements.radius).toLocaleString()} m`
+  elements.coneMaxRadiusValue.textContent = `${numberValue(elements.coneMaxRadius).toLocaleString()} m`
   elements.widthValue.textContent = `${numberValue(elements.width).toLocaleString()} px`
   elements.heightValue.textContent = `${numberValue(elements.height).toLocaleString()} m`
   elements.lengthValue.textContent = `${numberValue(elements.length).toLocaleString()} m`
   elements.speedValue.textContent = `${formatSpeedValue(numberValue(elements.speed))}x`
   elements.scaleValue.textContent = `${numberValue(elements.scale).toFixed(2)}x`
   elements.scanDurationValue.textContent = `${numberValue(elements.scanDuration).toLocaleString()} ms`
+  elements.coneExpansionDurationValue.textContent = `${numberValue(elements.coneExpansionDuration).toLocaleString()} ms`
   elements.frameIntervalValue.textContent = `${numberValue(elements.frameInterval).toLocaleString()} ms`
   elements.ringCountValue.textContent = `${numberValue(elements.ringCount).toLocaleString()} rings`
   elements.durationValue.textContent = `${numberValue(elements.duration).toLocaleString()} ms`
@@ -2261,6 +2389,8 @@ function syncOutputs(): void {
   elements.windDirectionValue.textContent = `${numberValue(elements.windDirection).toLocaleString()} deg`
   elements.apertureValue.textContent = `${numberValue(elements.aperture).toLocaleString()} deg`
   elements.opacityValue.textContent = numberValue(elements.opacity).toFixed(2)
+  elements.restartConeExpansion.disabled = !elements.coneExpansion.checked
+  elements.cancelConeExpansion.disabled = !elements.coneExpansion.checked
 }
 
 function syncCopy(): void {
@@ -2697,6 +2827,23 @@ wall.destroy()`
 }
 
 function getScanConeCode(): string {
+  const expansionCode = elements.coneExpansion.checked
+    ? `  expansion: {
+    maxRadiusMeters: ${numberValue(elements.coneMaxRadius)},
+    durationMs: ${numberValue(elements.coneExpansionDuration)},
+    cameraFollow: ${elements.coneCameraFollow.checked},
+    autoStart: true,
+    onFrame: (frame) => {
+      console.log('scan radius (m)', frame.radiusMeters.toFixed(0))
+    },
+    onComplete: (frame) => {
+      console.log('expansion complete (m)', frame.radiusMeters.toFixed(0))
+    },
+  },
+`
+    : ''
+  const restartCode = elements.coneExpansion.checked ? 'cone.restartExpansion()\n' : ''
+
   return `import { createScanConeEffect } from '@ztgkzhaohao/geo-effect-kit'
 
 const cone = createScanConeEffect(viewer, {
@@ -2708,10 +2855,10 @@ const cone = createScanConeEffect(viewer, {
   speed: ${numberValue(elements.speed).toFixed(2)},
   aperture: ${numberValue(elements.aperture)},
   heading: ${numberValue(elements.heading)},
-})
+${expansionCode}})
 
 cone.flyTo()
-cone.destroy()`
+${restartCode}cone.destroy()`
 }
 
 function getRouteScanCode(): string {

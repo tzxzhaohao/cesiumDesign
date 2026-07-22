@@ -260,6 +260,60 @@ select {
   height: 16px;
 }
 
+.cone-expansion-actions {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-width: 0;
+  gap: 8px;
+  padding-top: 2px;
+}
+
+.cone-expansion-action {
+  min-width: 0;
+  padding: 9px 10px;
+  overflow: hidden;
+  color: #e8ff72;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: rgb(232 255 114 / 8%);
+  border: 1px solid rgb(232 255 114 / 30%);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.cone-expansion-action:hover {
+  color: #071018;
+  background: #e8ff72;
+  border-color: #e8ff72;
+}
+
+.cone-expansion-action:focus-visible {
+  outline: 2px solid #e8ff72;
+  outline-offset: 2px;
+}
+
+.cone-expansion-action:disabled {
+  color: #778081;
+  background: rgb(255 255 255 / 4%);
+  border-color: rgb(255 255 255 / 10%);
+  cursor: not-allowed;
+}
+
+.cone-expansion-status {
+  grid-column: 1 / -1;
+  min-width: 0;
+  color: #e8ff72;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 11px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.control-grid .cone-expansion-status {
+  color: #e8ff72;
+}
+
 .docs-panel {
   right: 18px;
   bottom: 18px;
@@ -453,5 +507,10 @@ select {
 @media (max-width: 620px) {
   .control-grid {
     grid-template-columns: 1fr;
+  }
+
+  .cone-expansion-action {
+    padding-inline: 6px;
+    font-size: 11px;
   }
 }

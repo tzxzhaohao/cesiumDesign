@@ -3,6 +3,15 @@ import assert from 'node:assert/strict'
 import { readFileSync, statSync } from 'node:fs'
 import { parseTiandituAdministrativePolygons } from '../src/temperature-field-data.ts'
 
+function extractFunction(source, name, nextName) {
+  const start = source.indexOf(`function ${name}`)
+  const end = source.indexOf(`function ${nextName}`, start)
+
+  assert.notEqual(start, -1, `expected function ${name}`)
+  assert.notEqual(end, -1, `expected function ${nextName} after ${name}`)
+  return source.slice(start, end)
+}
+
 test('demo configures Tianditu imagery from an ignored local env token', () => {
   const source = readFileSync(new URL('../src/main.ts', import.meta.url), 'utf8')
   const gitignore = readFileSync(new URL('../../../.gitignore', import.meta.url), 'utf8')
@@ -371,6 +380,103 @@ test('demo exposes route-scan as a moving scanner with one selectable scan effec
   assert.doesNotMatch(generatedExample, /createScanConeEffect\(viewer[\s\S]*scanner\.update\(\{ center \}\)/)
   assert.match(generatedExample, /scannerMaterial\.uniforms\.timeSeconds = \(now - routeStart\) \/ 1000/)
   assert.doesNotMatch(generatedExample, /const radar = createRadarScanEffect[\s\S]*const cone = createScanConeEffect/)
+})
+
+test('demo exposes scan-cone expansion controls, live progress, and accessible actions', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
+
+  assert.match(html, /id="coneExpansion" type="checkbox" checked/)
+  assert.match(html, /id="coneMaxRadius" type="range" min="1000" max="90000" step="1000" value="20000"/)
+  assert.match(html, /id="coneMaxRadiusValue">20,000 m<\/output>/)
+  assert.match(html, /id="coneExpansionDuration" type="range" min="1000" max="12000" step="100" value="4500"/)
+  assert.match(html, /id="coneExpansionDurationValue">4,500 ms<\/output>/)
+  assert.match(html, /id="coneCameraFollow" type="checkbox" checked/)
+  assert.match(html, /id="restartConeExpansion"/)
+  assert.match(html, /id="cancelConeExpansion"/)
+  assert.match(html, /id="coneExpansionState"[^>]*aria-live="polite"[^>]*aria-atomic="true"/)
+  assert.match(html, /coneExpansionState[\s\S]*status[\s\S]*radius[\s\S]*height[\s\S]*0%/)
+})
+
+test('demo creates, updates, restarts, and cancels scan-cone expansion without duplicate toggle sync', () => {
+  const source = readFileSync(new URL('../src/main.ts', import.meta.url), 'utf8')
+  const createEffect = extractFunction(source, 'createEffect', 'createMaterialPolylineEffects')
+  const syncEffect = extractFunction(source, 'syncEffect', 'setDefaults')
+  const recreateEffect = extractFunction(source, 'recreateActiveScanConeEffect', 'getActiveScanConeEffect')
+  const expansionOptions = extractFunction(source, 'getScanConeExpansionOptions', 'syncConeExpansionState')
+  const eventWiring = source.slice(source.indexOf("document.querySelectorAll<HTMLButtonElement>('.effect-tab')"), source.indexOf("switchEffect('polyline-flow')"))
+
+  assert.match(source, /type ScanConeExpansionFrame/)
+  assert.match(source, /type ScanConeEffectInstance/)
+  assert.match(createEffect, /const expansion = getScanConeExpansionOptions\(\)/)
+  assert.match(createEffect, /\.\.\.\(expansion \? \{ expansion \} : \{\}\)/)
+  assert.match(expansionOptions, /maxRadiusMeters: numberValue\(elements\.coneMaxRadius\)/)
+  assert.match(expansionOptions, /durationMs: numberValue\(elements\.coneExpansionDuration\)/)
+  assert.match(expansionOptions, /cameraFollow: elements\.coneCameraFollow\.checked/)
+  assert.match(expansionOptions, /autoStart: true/)
+  assert.match(expansionOptions, /onFrame:/)
+  assert.match(expansionOptions, /onComplete:/)
+  assert.match(syncEffect, /const expansion = getScanConeExpansionOptions\(\)/)
+  assert.match(syncEffect, /showOrigin: elements\.origin\.checked,[\s\S]*\.\.\.\(expansion \? \{ expansion \} : \{\}\)/)
+  assert.match(eventWiring, /elements\.coneExpansion\.addEventListener\('change', recreateActiveScanConeEffect\)/)
+  assert.doesNotMatch(eventWiring.match(/;\[[\s\S]*?\]\.forEach/)?.[0] ?? '', /elements\.coneExpansion,/)
+  assert.doesNotMatch(recreateEffect, /syncEffect\(\)/)
+  assert.match(eventWiring, /restartConeExpansion[\s\S]*restartExpansion\(\)/)
+  assert.match(eventWiring, /cancelConeExpansion[\s\S]*cancelExpansion\(\)/)
+})
+
+test('demo renders scan-cone expansion state and keeps smart camera follow ownership', () => {
+  const source = readFileSync(new URL('../src/main.ts', import.meta.url), 'utf8')
+  const liveState = extractFunction(source, 'syncConeExpansionState', 'syncStaticConeExpansionState')
+  const switchEffect = extractFunction(source, 'switchEffect', 'createEffect')
+  const skipFlyTo = extractFunction(source, 'shouldSkipAutomaticFlyTo', 'createEffect')
+
+  assert.match(liveState, /frame: ScanConeExpansionFrame/)
+  assert.match(liveState, /status/)
+  assert.match(liveState, /frame\.radiusMeters/)
+  assert.match(liveState, /frame\.lengthMeters/)
+  assert.match(liveState, /frame\.progress \* 100/)
+  assert.match(liveState, /elements\.coneExpansionState\.textContent/)
+  assert.match(switchEffect, /shouldSkipAutomaticFlyTo\(effectId\)/)
+  assert.match(skipFlyTo, /effectId === 'scan-cone'/)
+  assert.match(skipFlyTo, /elements\.coneExpansion\.checked/)
+  assert.match(skipFlyTo, /elements\.coneCameraFollow\.checked/)
+  assert.doesNotMatch(switchEffect, /else activeEffect\?\.flyTo\(\)/)
+  assert.match(source, /getElement\('flyTo'\)[\s\S]*else activeEffect\?\.flyTo\(\)/)
+})
+
+test('demo generates optional scan-cone expansion usage and shows all expansion controls', () => {
+  const source = readFileSync(new URL('../src/main.ts', import.meta.url), 'utf8')
+  const generatedCode = extractFunction(source, 'getScanConeCode', 'getRouteScanCode')
+  const visibleControls = extractFunction(source, 'syncVisibleControls', 'syncRadarTypeOptions')
+
+  assert.match(generatedCode, /elements\.coneExpansion\.checked/)
+  assert.match(generatedCode, /expansion:/)
+  assert.match(generatedCode, /maxRadiusMeters:/)
+  assert.match(generatedCode, /durationMs:/)
+  assert.match(generatedCode, /cameraFollow:/)
+  assert.match(generatedCode, /autoStart: true/)
+  assert.match(generatedCode, /onFrame:/)
+  assert.match(generatedCode, /frame\.radiusMeters/)
+  assert.match(generatedCode, /cone\.restartExpansion\(\)/)
+  assert.match(generatedCode, /cone\.destroy\(\)/)
+  assert.match(visibleControls, /'scan-cone': \[[\s\S]*'coneExpansionField'/)
+  assert.match(visibleControls, /'coneMaxRadiusField'/)
+  assert.match(visibleControls, /'coneExpansionDurationField'/)
+  assert.match(visibleControls, /'coneCameraFollowField'/)
+  assert.match(visibleControls, /'coneExpansionActions'/)
+})
+
+test('demo styles scan-cone actions as a responsive two-column HUD module', () => {
+  const styles = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8')
+
+  assert.match(styles, /\.cone-expansion-actions\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\);/)
+  assert.match(styles, /\.cone-expansion-status\s*\{[\s\S]*grid-column:\s*1\s*\/\s*-1;/)
+  assert.match(styles, /\.cone-expansion-status\s*\{[\s\S]*color:\s*#e8ff72;/)
+  assert.match(styles, /\.cone-expansion-status\s*\{[\s\S]*font-family:[\s\S]*monospace;/)
+  assert.match(styles, /\.cone-expansion-action:hover/)
+  assert.match(styles, /\.cone-expansion-action:focus-visible/)
+  assert.match(styles, /\.cone-expansion-action\s*\{[\s\S]*min-width:\s*0;/)
+  assert.match(styles, /@media \(max-width: 620px\)[\s\S]*\.cone-expansion-action/)
 })
 
 test('demo exposes temperature-field with FireHotspot-compatible generated code', () => {
