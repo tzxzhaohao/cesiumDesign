@@ -775,6 +775,28 @@ test('ScanConeEffect camera follow cleans listeners on completion, cancel, hide,
   }
 })
 
+test('ScanConeEffect keeps delayed camera flight ownership after expansion completes until destroy', () => {
+  const raf = installRafHarness()
+  try {
+    const viewer = createMockViewer({ visibility: Intersect.OUTSIDE })
+    const effect = createScanConeEffect(viewer, {
+      center,
+      expansion: { maxRadiusMeters: 200, durationMs: 100, cameraFollow: true },
+    })
+    raf.step(0)
+    raf.step(100)
+    assert.equal(effect.getExpansionState().status, 'completed')
+    assert.equal(viewer.canvas.listenerCount(), 0)
+    assert.notEqual(viewer.camera.activeFlightOptions, null)
+
+    effect.destroy()
+    assert.equal(viewer.camera.cancelFlightCount, 1)
+    assert.equal(viewer.camera.activeFlightOptions, null)
+  } finally {
+    raf.restore()
+  }
+})
+
 test('ScanConeEffect camera follow resumes after hide with remaining duration unless the user took over', () => {
   const raf = installRafHarness()
   try {
@@ -843,10 +865,30 @@ test('ScanConeEffect releases automatic flight ownership when Cesium completes o
   replacedViewer.camera.flyTo()
   assert.equal(replacedViewer.canvas.listenerCount(), 0)
   replacedViewer.canvas.dispatch('wheel')
-  replacedEffect.cancelExpansion()
   replacedEffect.hide()
-  replacedEffect.destroy()
+  replacedEffect.show()
+  replacedEffect.update({
+    center: { longitude: 117.2, latitude: 40.1 },
+    heading: 95,
+  })
+  assert.equal(replacedViewer.camera.flyToBoundingSphereCount, 1)
+  assert.equal(replacedViewer.camera.visibilityChecks.length, 1)
   assert.equal(replacedViewer.camera.cancelFlightCount, 0)
+
+  replacedEffect.update({
+    expansion: { ...replacedEffect.getOptions().expansion, cameraFollow: false },
+  })
+  replacedEffect.update({
+    expansion: { ...replacedEffect.getOptions().expansion, cameraFollow: true },
+  })
+  assert.equal(replacedViewer.camera.flyToBoundingSphereCount, 1)
+
+  replacedEffect.cancelExpansion()
+  assert.equal(replacedViewer.camera.cancelFlightCount, 0)
+  replacedEffect.restartExpansion()
+  assert.equal(replacedViewer.camera.flyToBoundingSphereCount, 2)
+  replacedEffect.destroy()
+  assert.equal(replacedViewer.camera.cancelFlightCount, 1)
 
   const completedViewer = createMockViewer({ visibility: Intersect.OUTSIDE })
   const completedEffect = createScanConeEffect(completedViewer, {

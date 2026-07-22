@@ -4250,6 +4250,7 @@ export class ScanConeEffect implements ScanConeEffectInstance {
   private cameraFollowListenersAttached = false
   private cameraFollowGeneration = 0
   private activeCameraFollowGeneration: number | null = null
+  private internallyCancellingCameraFollowGeneration: number | null = null
   private renderFrame = 0
   private destroyed = false
 
@@ -4318,7 +4319,6 @@ export class ScanConeEffect implements ScanConeEffectInstance {
     if (!modeChanged && !restartExpansion && cameraFollowChanged) {
       this.stopExpansionCameraFollow(true)
       this.cameraFollowPlanned = false
-      this.cameraFollowCancelledByUser = false
       this.startExpansionCameraFollow(this.getExpansionRemainingDurationMs())
     }
 
@@ -4641,7 +4641,7 @@ export class ScanConeEffect implements ScanConeEffectInstance {
     const callbackState = { ...this.expansionState }
     const notifyCompletion = completed && !this.completionNotified
     if (notifyCompletion) this.completionNotified = true
-    if (completed) this.stopExpansionCameraFollow(false)
+    if (completed) this.detachCameraFollowListeners()
     expansion.onFrame?.(callbackState)
     if (notifyCompletion) expansion.onComplete?.({ ...callbackState })
     return true
@@ -4710,7 +4710,7 @@ export class ScanConeEffect implements ScanConeEffectInstance {
         duration: durationMs / 1000,
         offset: new HeadingPitchRange(heading, pitch, 0),
         complete: () => this.releaseExpansionCameraFollow(generation),
-        cancel: () => this.releaseExpansionCameraFollow(generation),
+        cancel: () => this.handleExpansionCameraFollowCancelled(generation),
       })
     } catch {
       this.releaseExpansionCameraFollow(generation)
@@ -4751,13 +4751,25 @@ export class ScanConeEffect implements ScanConeEffectInstance {
       this.releaseExpansionCameraFollow(generation)
       return
     }
+    this.internallyCancellingCameraFollowGeneration = generation
     try {
       this.viewer.camera.cancelFlight()
     } catch {
       // Camera follow is optional; camera failures must not stop the effect lifecycle.
     } finally {
       this.releaseExpansionCameraFollow(generation)
+      if (this.internallyCancellingCameraFollowGeneration === generation) {
+        this.internallyCancellingCameraFollowGeneration = null
+      }
     }
+  }
+
+  private handleExpansionCameraFollowCancelled(generation: number): void {
+    if (this.activeCameraFollowGeneration !== generation) return
+    if (this.internallyCancellingCameraFollowGeneration !== generation) {
+      this.cameraFollowCancelledByUser = true
+    }
+    this.releaseExpansionCameraFollow(generation)
   }
 
   private releaseExpansionCameraFollow(generation: number): void {
