@@ -1,6 +1,6 @@
 {
   "name": "@ztgkzhaohao/geo-effect-kit",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "description": "Framework-neutral Cesium effects SDK for geospatial visualizations.",
   "license": "MIT",
