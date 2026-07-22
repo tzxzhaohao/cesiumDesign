@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 This project follows semantic versioning after the public npm release. During `0.x`, public APIs may still evolve, but breaking changes should be documented here.
 
+## Unreleased
+
+- Added optional smooth `scan-cone` expansion that grows radius and length together, plus live frame and completion callbacks.
+- Added opt-in smart camera framing that yields to user camera input while expansion continues.
+- Added scan-cone Demo controls, live progress, restart/cancel actions, generated examples, and expansion documentation.
+
 ## 0.3.1 - 2026-07-22
 
 - Fixed the MCP npm package layout so packaged installs include and read the effect knowledge manifests from `dist/knowledge`.

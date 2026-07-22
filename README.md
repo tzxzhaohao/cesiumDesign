@@ -8,7 +8,7 @@ Framework-neutral Cesium effects for WebGIS dashboards, emergency command system
 
 - Works with an existing Cesium `Viewer`.
 - Framework-neutral TypeScript API.
-- Reusable effects for radar scans, ripple spread, route flow, material polylines, fly lines, pipe flow, water surfaces, light walls, scan cones, shield domes, temperature fields, GIF fire billboards, scene weather, and post-processing.
+- Reusable effects for radar scans, ripple spread, route flow, material polylines, fly lines, pipe flow, water surfaces, light walls, scan cones with optional smooth expansion and frame callbacks, shield domes, temperature fields, GIF fire billboards, scene weather, and post-processing.
 - Common lifecycle API: `update`, `show`, `hide`, `flyTo`, `destroy`.
 - Machine-readable manifests for AI agents.
 - Optional MCP server for effect discovery and integration examples.
@@ -55,12 +55,26 @@ radar.destroy()
 | Pipe flow | `createPipeFlowEffect` | Water pipes and pressure flow |
 | Water surface | `createWaterSurfaceEffect` | Rivers, lakes, flood surfaces, and directional Flow Type water |
 | Light wall | `createLightWallEffect` | Security boundaries and protected areas |
-| Scan cone | `createScanConeEffect` | Searchlights, sensors, cameras, drones |
+| Scan cone | `createScanConeEffect` | Searchlights, sensors, cameras, and drones with optional smooth radius-and-length expansion |
 | Shield dome | `createShieldDomeEffect` | Protective domes and highlighted regions |
 | Temperature field | `createTemperatureFieldEffect` | Risk surfaces and heat fields |
 | Fire billboard | `createFireBillboardEffect` | GIF fire markers by longitude/latitude |
 | Scene weather | `createSceneWeatherEffect` | Rain, snow, fog, lightning |
 | Post process | `createPostProcessEffect` | Bloom, night vision, black-white, brightness, mosaic, depth of field |
+
+Scan cones keep their existing static behavior unless `expansion` is provided. The optional callback exposes live progress and dimensions:
+
+```ts
+const cone = createScanConeEffect(viewer, {
+  center: { longitude: 116.391, latitude: 39.907 },
+  lengthMeters: 6200,
+  expansion: {
+    maxRadiusMeters: 2200,
+    cameraFollow: false,
+    onFrame: (frame) => console.log(frame.progress, frame.radiusMeters),
+  },
+})
+```
 
 ## Documentation
 

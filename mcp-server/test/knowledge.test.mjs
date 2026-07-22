@@ -132,6 +132,32 @@ test('getEffectSchema returns route flow and 3D volume schemas', async () => {
   assert.equal(dome.options.properties.gridDensity.default, 14)
 })
 
+test('getEffectSchema documents scan-cone expansion options and controls', async () => {
+  const cone = await getEffectSchema('scan-cone')
+  const expansion = cone.options.properties.expansion
+
+  assert.equal(expansion.type, 'object')
+  assert.equal(expansion.properties.maxRadiusMeters.required, true)
+  assert.equal(expansion.properties.maxRadiusMeters.minimum, 1)
+  assert.match(expansion.properties.maxRadiusMeters.description, /radius/i)
+  assert.equal(expansion.properties.durationMs.default, 4500)
+  assert.equal(expansion.properties.durationMs.minimum, 100)
+  assert.equal(expansion.properties.durationMs.maximum, 120000)
+  assert.match(expansion.properties.durationMs.description, /duration/i)
+  assert.equal(expansion.properties.cameraFollow.default, false)
+  assert.match(expansion.properties.cameraFollow.description, /camera/i)
+  assert.equal(expansion.properties.autoStart.default, true)
+  assert.match(expansion.properties.autoStart.description, /start/i)
+  assert.equal(expansion.properties.onFrame.type, 'function')
+  assert.match(expansion.properties.onFrame.description, /frame/i)
+  assert.equal(expansion.properties.onComplete.type, 'function')
+  assert.match(expansion.properties.onComplete.description, /complete/i)
+  assert.equal(cone.methods.includes('restartExpansion'), true)
+  assert.equal(cone.methods.includes('cancelExpansion'), true)
+  assert.equal(cone.methods.includes('isExpanding'), true)
+  assert.equal(cone.methods.includes('getExpansionState'), true)
+})
+
 test('getEffectSchema returns FireHotspot-compatible temperature field schema', async () => {
   const field = await getEffectSchema('temperature-field')
 
@@ -185,6 +211,14 @@ test('getUsageExample returns new effect snippets', async () => {
   assert.match(wall.code, /createLightWallEffect/)
   assert.match(cone.code, /createScanConeEffect/)
   assert.match(dome.code, /createShieldDomeEffect/)
+})
+
+test('getUsageExample returns scan-cone smooth expansion callbacks', async () => {
+  const cone = await getUsageExample('scan-cone', 'minimal')
+
+  assert.match(cone.code, /maxRadiusMeters/)
+  assert.match(cone.code, /cameraFollow/)
+  assert.match(cone.code, /onFrame/)
 })
 
 test('getUsageExample returns the temperature field FireHotspot snippet', async () => {

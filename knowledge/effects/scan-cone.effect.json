@@ -3,7 +3,7 @@
   "name": "Scan Cone",
   "packageName": "@ztgkzhaohao/geo-effect-kit",
   "importName": "createScanConeEffect",
-  "summary": "A rotating volumetric Cesium cone for searchlights, radar beams, camera coverage, drones, and alarm ranges.",
+  "summary": "A rotating volumetric Cesium cone with optional smooth radius-and-length expansion and per-frame progress callbacks.",
   "useCases": [
     "Camera or base-station coverage visualization",
     "Drone detection and rotating search cone",
@@ -31,7 +31,7 @@
         "type": "number",
         "default": 1800,
         "minimum": 1,
-        "description": "Minimum bottom radius in meters."
+        "description": "Static cone bottom radius in meters when expansion is omitted."
       },
       "lengthMeters": {
         "type": "number",
@@ -69,24 +69,63 @@
         "type": "boolean",
         "default": true,
         "description": "Show a point marker at the cone origin."
+      },
+      "expansion": {
+        "type": "object",
+        "description": "Optional smooth expansion that grows the cone radius and length together.",
+        "properties": {
+          "maxRadiusMeters": {
+            "type": "number",
+            "required": true,
+            "minimum": 1,
+            "description": "Final expansion radius in meters."
+          },
+          "durationMs": {
+            "type": "number",
+            "default": 4500,
+            "minimum": 100,
+            "maximum": 120000,
+            "description": "Expansion duration in milliseconds."
+          },
+          "cameraFollow": {
+            "type": "boolean",
+            "default": false,
+            "description": "Opt in to one smart camera flight that frames the final cone and yields when the user takes camera control."
+          },
+          "autoStart": {
+            "type": "boolean",
+            "default": true,
+            "description": "Start expansion automatically when the effect is created. Set false to wait for restartExpansion()."
+          },
+          "onFrame": {
+            "type": "function",
+            "description": "Called once per rendered expansion frame with status, progress, radiusMeters, lengthMeters, and elapsedMs. Keep the callback lightweight."
+          },
+          "onComplete": {
+            "type": "function",
+            "description": "Called once after the final completed frame with the exact final expansion state."
+          }
+        }
       }
     }
   },
-  "methods": ["update", "show", "hide", "flyTo", "destroy", "isVisible", "isDestroyed", "getOptions"],
+  "methods": ["update", "restartExpansion", "cancelExpansion", "isExpanding", "getExpansionState", "show", "hide", "flyTo", "destroy", "isVisible", "isDestroyed", "getOptions"],
   "examples": {
     "minimal": {
       "language": "ts",
-      "code": "import { createScanConeEffect } from '@ztgkzhaohao/geo-effect-kit'\n\nconst cone = createScanConeEffect(viewer, {\n  center: { longitude: 116.391, latitude: 39.907 },\n  type: 'searchlight',\n  color: '#7cf7ff',\n  radiusMeters: 2200,\n  lengthMeters: 6200,\n  speed: 1.2,\n  aperture: 38,\n})\n\ncone.flyTo()\ncone.destroy()\n"
+      "code": "import { createScanConeEffect } from '@ztgkzhaohao/geo-effect-kit'\n\nconst cone = createScanConeEffect(viewer, {\n  center: { longitude: 116.391, latitude: 39.907 },\n  type: 'searchlight',\n  color: '#7cf7ff',\n  lengthMeters: 6200,\n  speed: 1.2,\n  aperture: 38,\n  expansion: {\n    maxRadiusMeters: 2200,\n    durationMs: 4500,\n    cameraFollow: false,\n    onFrame: (frame) => {\n      console.log(frame.progress, frame.radiusMeters, frame.lengthMeters)\n    },\n  },\n})\n\ncone.flyTo()\n// Later, when leaving the page or replacing the layer:\ncone.destroy()\n"
     },
     "update": {
       "language": "ts",
-      "code": "cone.update({\n  type: 'alarm',\n  color: '#ff315a',\n  speed: 2.6,\n  heading: 45,\n  showOrigin: false,\n})\n"
+      "code": "cone.update({\n  type: 'alarm',\n  color: '#ff315a',\n  speed: 2.6,\n  heading: 45,\n  showOrigin: false,\n  expansion: {\n    maxRadiusMeters: 4800,\n    durationMs: 6000,\n    cameraFollow: false,\n    onFrame: (frame) => console.log(frame.radiusMeters),\n  },\n})\n\ncone.restartExpansion()\n"
     }
   },
   "notes": [
     "Pass an existing Cesium Viewer; the SDK does not create or own the viewer.",
-    "The effect uses Cesium CylinderGraphics with topRadius 0 and a custom GeoScanConeMaterial.",
-    "Changing center, radiusMeters, lengthMeters, or aperture rebuilds cone geometry.",
-    "Call destroy() during page cleanup to remove the data source and render loop."
+    "Without expansion, the effect keeps the existing static Cesium Entity path with CylinderGraphics and GeoScanConeMaterial.",
+    "Expansion uses one Cesium Primitive and updates its model matrix in place; it does not rebuild geometry every frame.",
+    "cameraFollow is opt-in and defaults to false. Pointer, wheel, or touch input yields camera ownership to the user without stopping expansion.",
+    "Changing maxRadiusMeters, durationMs, or lengthMeters through update() restarts the expansion run.",
+    "Call destroy() during page cleanup to remove the entity or primitive, data source, camera listeners, and render loop."
   ]
 }

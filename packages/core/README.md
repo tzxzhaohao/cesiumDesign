@@ -12,7 +12,7 @@ Framework-neutral Cesium effects SDK.
 - `createPipeFlowEffect`
 - `createWaterSurfaceEffect`
 - `createLightWallEffect`
-- `createScanConeEffect`
+- `createScanConeEffect` with optional smooth radius-and-length expansion, live frame callbacks, and opt-in camera follow.
 - `createShieldDomeEffect`
 - `createTemperatureFieldEffect`
 - `createFireBillboardEffect`
@@ -44,6 +44,27 @@ const radar = createRadarScanEffect(viewer, {
 
 radar.flyTo()
 radar.destroy()
+```
+
+## Scan cone expansion
+
+Omit `expansion` to keep the existing static Entity behavior. When enabled, the effect grows radius and length together with one Primitive and reports each sampled frame:
+
+```ts
+import { createScanConeEffect } from '@ztgkzhaohao/geo-effect-kit'
+
+const cone = createScanConeEffect(viewer, {
+  center: { longitude: 116.391, latitude: 39.907 },
+  lengthMeters: 6200,
+  expansion: {
+    maxRadiusMeters: 2200,
+    durationMs: 4500,
+    cameraFollow: false,
+    onFrame: (frame) => console.log(frame.progress, frame.radiusMeters),
+  },
+})
+
+cone.destroy()
 ```
 
 ## Documentation
