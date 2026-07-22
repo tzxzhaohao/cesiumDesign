@@ -83,7 +83,7 @@
 
       <main class="stage">
         <div id="cesiumContainer"></div>
-        <section class="hud" aria-live="polite">
+        <section class="hud">
           <div class="hud-header">
             <div>
               <span id="effectId" class="eyebrow">radar-scan</span>
@@ -381,7 +381,17 @@
             <div id="coneExpansionActions" class="cone-expansion-actions" hidden>
               <button id="restartConeExpansion" class="cone-expansion-action" type="button">Restart expansion</button>
               <button id="cancelConeExpansion" class="cone-expansion-action" type="button">Cancel expansion</button>
-              <output id="coneExpansionState" class="cone-expansion-status" aria-live="polite" aria-atomic="true">status ready · radius 0 m · height 0 m · 0%</output>
+              <div
+                id="coneExpansionState"
+                class="cone-expansion-status"
+                role="progressbar"
+                aria-label="Scan cone expansion"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                aria-valuenow="0"
+                aria-valuetext="status ready · radius 0 m · height 0 m · 0%"
+              >status ready · radius 0 m · height 0 m · 0%</div>
+              <p id="coneExpansionAnnouncement" class="sr-only" aria-live="polite" aria-atomic="true"></p>
             </div>
             <label id="domeRingField" class="check-row" hidden>
               <input id="domeRing" type="checkbox" checked />

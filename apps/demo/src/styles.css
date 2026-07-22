@@ -218,6 +218,17 @@ select {
   max-width: 100%;
 }
 
+.control-grid input:focus-visible,
+.control-grid select:focus-visible {
+  outline: 2px solid #e8ff72;
+  outline-offset: 2px;
+}
+
+.control-grid input:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
 .control-grid input[type="color"] {
   height: 34px;
   padding: 3px;
@@ -312,6 +323,18 @@ select {
 
 .control-grid .cone-expansion-status {
   color: #e8ff72;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .docs-panel {

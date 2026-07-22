@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync, statSync } from 'node:fs'
+import ts from 'typescript'
 import { parseTiandituAdministrativePolygons } from '../src/temperature-field-data.ts'
 
 function extractFunction(source, name, nextName) {
@@ -10,6 +11,24 @@ function extractFunction(source, name, nextName) {
   assert.notEqual(start, -1, `expected function ${name}`)
   assert.notEqual(end, -1, `expected function ${nextName} after ${name}`)
   return source.slice(start, end)
+}
+
+async function loadScanConeDemoHelpers() {
+  return import('../src/scan-cone-demo.ts').catch(() => ({}))
+}
+
+function assertParsesTypeScript(source, label) {
+  const result = ts.transpileModule(source, {
+    compilerOptions: {
+      module: ts.ModuleKind.ESNext,
+      target: ts.ScriptTarget.ES2022,
+      jsx: ts.JsxEmit.ReactJSX,
+    },
+    fileName: `${label}.ts`,
+    reportDiagnostics: true,
+  })
+  const errors = (result.diagnostics ?? []).filter((diagnostic) => diagnostic.category === ts.DiagnosticCategory.Error)
+  assert.deepEqual(errors.map((diagnostic) => ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n')), [], `${label} should parse`)
 }
 
 test('demo configures Tianditu imagery from an ignored local env token', () => {
@@ -274,6 +293,7 @@ test('demo HUD controls avoid horizontal overflow', () => {
 test('demo Usage panel exposes TypeScript React Vue templates and clipboard copy', () => {
   const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
   const source = readFileSync(new URL('../src/main.ts', import.meta.url), 'utf8')
+  const templateSource = readFileSync(new URL('../src/scan-cone-demo.ts', import.meta.url), 'utf8')
 
   assert.match(html, /id="usageToolbar"/)
   assert.match(html, /data-code-template="typescript"/)
@@ -282,13 +302,13 @@ test('demo Usage panel exposes TypeScript React Vue templates and clipboard copy
   assert.match(html, /id="copyCode"/)
   assert.match(source, /type CodeTemplate =/)
   assert.match(source, /activeCodeTemplate/)
-  assert.match(source, /function getReactCodeTemplate/)
-  assert.match(source, /function getVueCodeTemplate/)
+  assert.match(source, /getReactCodeTemplate/)
+  assert.match(source, /getVueCodeTemplate/)
   assert.match(source, /navigator\.clipboard\.writeText/)
   assert.match(source, /function fallbackCopyText/)
   assert.match(source, /const copied = document\.execCommand\('copy'\)/)
   assert.match(source, /showCopyStatus\(copied \? 'Copied' : 'Copy failed'\)/)
-  assert.match(source, /line\.includes\('entities\.remove\('\)/)
+  assert.match(templateSource, /line\.includes\('entities\.remove\('\)/)
 })
 
 test('demo Usage panel constrains code area so long templates scroll', () => {
@@ -384,6 +404,9 @@ test('demo exposes route-scan as a moving scanner with one selectable scan effec
 
 test('demo exposes scan-cone expansion controls, live progress, and accessible actions', () => {
   const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
+  const styles = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8')
+  const progressTag = html.match(/<[^>]+id="coneExpansionState"[^>]*>/)?.[0] ?? ''
+  const hudTag = html.match(/<section[^>]+class="hud"[^>]*>/)?.[0] ?? ''
 
   assert.match(html, /id="coneExpansion" type="checkbox" checked/)
   assert.match(html, /id="coneMaxRadius" type="range" min="1000" max="90000" step="1000" value="20000"/)
@@ -393,8 +416,15 @@ test('demo exposes scan-cone expansion controls, live progress, and accessible a
   assert.match(html, /id="coneCameraFollow" type="checkbox" checked/)
   assert.match(html, /id="restartConeExpansion"/)
   assert.match(html, /id="cancelConeExpansion"/)
-  assert.match(html, /id="coneExpansionState"[^>]*aria-live="polite"[^>]*aria-atomic="true"/)
+  assert.match(progressTag, /role="progressbar"/)
+  assert.match(progressTag, /aria-valuemin="0"/)
+  assert.match(progressTag, /aria-valuemax="100"/)
+  assert.match(progressTag, /aria-valuenow="0"/)
+  assert.doesNotMatch(progressTag, /aria-live/)
+  assert.doesNotMatch(hudTag, /aria-live/, 'the progressbar must not inherit a live region from the HUD')
+  assert.match(html, /id="coneExpansionAnnouncement"[^>]*class="sr-only"[^>]*aria-live="polite"[^>]*aria-atomic="true"/)
   assert.match(html, /coneExpansionState[\s\S]*status[\s\S]*radius[\s\S]*height[\s\S]*0%/)
+  assert.match(styles, /\.sr-only\s*\{/)
 })
 
 test('demo creates, updates, restarts, and cancels scan-cone expansion without duplicate toggle sync', () => {
@@ -403,6 +433,7 @@ test('demo creates, updates, restarts, and cancels scan-cone expansion without d
   const syncEffect = extractFunction(source, 'syncEffect', 'setDefaults')
   const recreateEffect = extractFunction(source, 'recreateActiveScanConeEffect', 'getActiveScanConeEffect')
   const expansionOptions = extractFunction(source, 'getScanConeExpansionOptions', 'syncConeExpansionState')
+  const controlState = extractFunction(source, 'syncConeExpansionControlState', 'resetConeExpansionAnnouncements')
   const eventWiring = source.slice(source.indexOf("document.querySelectorAll<HTMLButtonElement>('.effect-tab')"), source.indexOf("switchEffect('polyline-flow')"))
 
   assert.match(source, /type ScanConeExpansionFrame/)
@@ -415,13 +446,21 @@ test('demo creates, updates, restarts, and cancels scan-cone expansion without d
   assert.match(expansionOptions, /autoStart: true/)
   assert.match(expansionOptions, /onFrame:/)
   assert.match(expansionOptions, /onComplete:/)
+  assert.match(expansionOptions, /onComplete:[^\n]+syncConeExpansionControlState\(frame\.status\)/)
+  assert.doesNotMatch(expansionOptions, /onComplete:[^\n]+syncConeExpansionState/)
   assert.match(syncEffect, /const expansion = getScanConeExpansionOptions\(\)/)
   assert.match(syncEffect, /showOrigin: elements\.origin\.checked,[\s\S]*\.\.\.\(expansion \? \{ expansion \} : \{\}\)/)
   assert.match(eventWiring, /elements\.coneExpansion\.addEventListener\('change', recreateActiveScanConeEffect\)/)
   assert.doesNotMatch(eventWiring.match(/;\[[\s\S]*?\]\.forEach/)?.[0] ?? '', /elements\.coneExpansion,/)
   assert.doesNotMatch(recreateEffect, /syncEffect\(\)/)
-  assert.match(eventWiring, /restartConeExpansion[\s\S]*restartExpansion\(\)/)
-  assert.match(eventWiring, /cancelConeExpansion[\s\S]*cancelExpansion\(\)/)
+  assert.match(recreateEffect, /replaceScanConeEffect\(activeEffect, \(\) => createEffect\('scan-cone'\)\)/)
+  assert.match(eventWiring, /restartConeExpansion[\s\S]*performConeExpansionAction\(cone, 'restart'\)/)
+  assert.match(eventWiring, /cancelConeExpansion[\s\S]*performConeExpansionAction\(cone, 'cancel'\)/)
+  assert.match(controlState, /elements\.radius\.disabled = controls\.radiusDisabled/)
+  assert.match(controlState, /elements\.coneMaxRadius\.disabled = controls\.expansionSettingsDisabled/)
+  assert.match(controlState, /elements\.coneExpansionDuration\.disabled = controls\.expansionSettingsDisabled/)
+  assert.match(controlState, /elements\.coneCameraFollow\.disabled = controls\.expansionSettingsDisabled/)
+  assert.match(controlState, /elements\.cancelConeExpansion\.disabled = controls\.cancelDisabled/)
 })
 
 test('demo renders scan-cone expansion state and keeps smart camera follow ownership', () => {
@@ -431,11 +470,12 @@ test('demo renders scan-cone expansion state and keeps smart camera follow owner
   const skipFlyTo = extractFunction(source, 'shouldSkipAutomaticFlyTo', 'createEffect')
 
   assert.match(liveState, /frame: ScanConeExpansionFrame/)
-  assert.match(liveState, /status/)
-  assert.match(liveState, /frame\.radiusMeters/)
-  assert.match(liveState, /frame\.lengthMeters/)
-  assert.match(liveState, /frame\.progress \* 100/)
+  assert.match(liveState, /formatConeExpansionProgress\(frame, status\)/)
   assert.match(liveState, /elements\.coneExpansionState\.textContent/)
+  assert.match(liveState, /aria-valuenow/)
+  assert.match(liveState, /aria-valuetext/)
+  assert.match(liveState, /updateConeExpansionAnnouncement/)
+  assert.match(liveState, /elements\.coneExpansionAnnouncement\.textContent/)
   assert.match(switchEffect, /shouldSkipAutomaticFlyTo\(effectId\)/)
   assert.match(skipFlyTo, /effectId === 'scan-cone'/)
   assert.match(skipFlyTo, /elements\.coneExpansion\.checked/)
@@ -454,16 +494,151 @@ test('demo generates optional scan-cone expansion usage and shows all expansion 
   assert.match(generatedCode, /maxRadiusMeters:/)
   assert.match(generatedCode, /durationMs:/)
   assert.match(generatedCode, /cameraFollow:/)
-  assert.match(generatedCode, /autoStart: true/)
-  assert.match(generatedCode, /onFrame:/)
-  assert.match(generatedCode, /frame\.radiusMeters/)
-  assert.match(generatedCode, /cone\.restartExpansion\(\)/)
-  assert.match(generatedCode, /cone\.destroy\(\)/)
+  assert.match(generatedCode, /buildScanConeCode/)
   assert.match(visibleControls, /'scan-cone': \[[\s\S]*'coneExpansionField'/)
   assert.match(visibleControls, /'coneMaxRadiusField'/)
   assert.match(visibleControls, /'coneExpansionDurationField'/)
   assert.match(visibleControls, /'coneCameraFollowField'/)
   assert.match(visibleControls, /'coneExpansionActions'/)
+})
+
+test('scan-cone effect replacement destroys once and creates once', async () => {
+  const helpers = await loadScanConeDemoHelpers()
+  assert.equal(typeof helpers.replaceScanConeEffect, 'function', 'expected executable replacement helper')
+
+  let destroyCalls = 0
+  let createCalls = 0
+  const previous = { destroy: () => { destroyCalls += 1 } }
+  const next = { destroy: () => undefined }
+  const replacement = helpers.replaceScanConeEffect(previous, () => {
+    createCalls += 1
+    return next
+  })
+
+  assert.equal(replacement, next)
+  assert.equal(destroyCalls, 1)
+  assert.equal(createCalls, 1)
+})
+
+test('scan-cone actions update fake effect state and disable cancel at terminal states', async () => {
+  const helpers = await loadScanConeDemoHelpers()
+  assert.equal(typeof helpers.performConeExpansionAction, 'function', 'expected executable action helper')
+  assert.equal(typeof helpers.getConeExpansionControlState, 'function', 'expected executable control-state helper')
+
+  let status = 'running'
+  let restartCalls = 0
+  let cancelCalls = 0
+  const effect = {
+    restartExpansion() {
+      restartCalls += 1
+      status = 'running'
+    },
+    cancelExpansion() {
+      cancelCalls += 1
+      status = 'cancelled'
+    },
+    getExpansionState() {
+      return { status, progress: status === 'completed' ? 1 : 0.4, radiusMeters: 8000, lengthMeters: 2480, elapsedMs: 1800 }
+    },
+  }
+
+  const cancelled = helpers.performConeExpansionAction(effect, 'cancel')
+  assert.equal(cancelled.status, 'cancelled')
+  assert.equal(cancelCalls, 1)
+  assert.equal(helpers.getConeExpansionControlState({ active: true, enabled: true, status: cancelled.status }).cancelDisabled, true)
+
+  helpers.performConeExpansionAction(effect, 'cancel')
+  assert.equal(cancelCalls, 1, 'terminal cancel should not call the effect again')
+
+  const restarted = helpers.performConeExpansionAction(effect, 'restart')
+  assert.equal(restarted.status, 'running')
+  assert.equal(restartCalls, 1)
+  assert.equal(helpers.getConeExpansionControlState({ active: true, enabled: true, status: restarted.status }).cancelDisabled, false)
+  assert.equal(helpers.getConeExpansionControlState({ active: true, enabled: true, status: 'completed' }).cancelDisabled, true)
+
+  assert.deepEqual(helpers.getConeExpansionControlState({ active: true, enabled: true, status: 'running' }), {
+    radiusDisabled: true,
+    expansionSettingsDisabled: false,
+    restartDisabled: false,
+    cancelDisabled: false,
+  })
+  assert.deepEqual(helpers.getConeExpansionControlState({ active: true, enabled: false, status: 'static' }), {
+    radiusDisabled: false,
+    expansionSettingsDisabled: true,
+    restartDisabled: true,
+    cancelDisabled: true,
+  })
+})
+
+test('scan-cone live announcements are throttled by status and progress milestones', async () => {
+  const helpers = await loadScanConeDemoHelpers()
+  assert.equal(typeof helpers.createConeExpansionAnnouncementState, 'function', 'expected announcement-state helper')
+  assert.equal(typeof helpers.updateConeExpansionAnnouncement, 'function', 'expected announcement reducer')
+
+  let state = helpers.createConeExpansionAnnouncementState()
+  const update = (status, progress) => {
+    const result = helpers.updateConeExpansionAnnouncement(state, {
+      status,
+      frame: { progress, radiusMeters: 20000 * progress, lengthMeters: 6200 * progress, elapsedMs: 4500 * progress },
+    })
+    state = result.state
+    return result.announcement
+  }
+
+  assert.match(update('running', 0), /running/)
+  assert.equal(update('running', 0.08), null)
+  assert.equal(update('running', 0.24), null)
+  assert.match(update('running', 0.25), /25%/)
+  assert.equal(update('running', 0.49), null)
+  assert.match(update('running', 0.5), /50%/)
+  assert.match(update('completed', 1), /completed/)
+  assert.equal(update('completed', 1), null, 'onComplete must not repeat the completed onFrame announcement')
+})
+
+test('generated scan-cone TypeScript and framework templates parse without double-starting expansion', async () => {
+  const helpers = await loadScanConeDemoHelpers()
+  assert.equal(typeof helpers.buildScanConeCode, 'function', 'expected executable scan-cone generator')
+  assert.equal(typeof helpers.getReactCodeTemplate, 'function', 'expected executable React template')
+  assert.equal(typeof helpers.getVueCodeTemplate, 'function', 'expected executable Vue template')
+
+  const base = {
+    center: { longitude: 116.391, latitude: 39.907 },
+    type: 'searchlight',
+    color: '#7cf7ff',
+    radiusMeters: 5000,
+    lengthMeters: 6200,
+    speed: 1,
+    aperture: 38,
+    heading: 0,
+  }
+  const smartCode = helpers.buildScanConeCode({
+    ...base,
+    expansion: { maxRadiusMeters: 20000, durationMs: 4500, cameraFollow: true },
+  })
+  const fixedCameraCode = helpers.buildScanConeCode({
+    ...base,
+    expansion: { maxRadiusMeters: 20000, durationMs: 4500, cameraFollow: false },
+  })
+  const staticCode = helpers.buildScanConeCode(base)
+
+  assert.match(smartCode, /autoStart: true/)
+  assert.doesNotMatch(smartCode, /^cone\.flyTo\(\)$/m)
+  assert.doesNotMatch(smartCode, /^cone\.restartExpansion\(\)$/m)
+  assert.match(smartCode, /^\/\/ cone\.restartExpansion\(\)$/m)
+  assert.match(fixedCameraCode, /^cone\.flyTo\(\)$/m)
+  assert.match(staticCode, /^cone\.flyTo\(\)$/m)
+  assert.doesNotMatch(staticCode, /expansion:/)
+
+  for (const [label, code] of [['smart', smartCode], ['fixed-camera', fixedCameraCode], ['static', staticCode]]) {
+    assertParsesTypeScript(code, `scan-cone-${label}`)
+  }
+
+  const reactCode = helpers.getReactCodeTemplate(smartCode)
+  const vueCode = helpers.getVueCodeTemplate(smartCode)
+  const vueScript = vueCode.match(/<script setup lang="ts">([\s\S]*?)<\/script>/)?.[1] ?? ''
+  assertParsesTypeScript(reactCode, 'scan-cone-react')
+  assert.ok(vueScript.length > 0, 'expected Vue TypeScript script')
+  assertParsesTypeScript(vueScript, 'scan-cone-vue')
 })
 
 test('demo styles scan-cone actions as a responsive two-column HUD module', () => {
@@ -476,6 +651,8 @@ test('demo styles scan-cone actions as a responsive two-column HUD module', () =
   assert.match(styles, /\.cone-expansion-action:hover/)
   assert.match(styles, /\.cone-expansion-action:focus-visible/)
   assert.match(styles, /\.cone-expansion-action\s*\{[\s\S]*min-width:\s*0;/)
+  assert.match(styles, /\.control-grid input:focus-visible/)
+  assert.match(styles, /\.control-grid input:disabled\s*\{[\s\S]*cursor:\s*not-allowed;/)
   assert.match(styles, /@media \(max-width: 620px\)[\s\S]*\.cone-expansion-action/)
 })
 
