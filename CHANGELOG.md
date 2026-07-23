@@ -6,6 +6,8 @@ This project follows semantic versioning after the public npm release. During `0
 
 ## Unreleased
 
+## 0.4.0 - 2026-07-23
+
 - Added optional smooth `scan-cone` expansion that grows radius and length together, plus live frame and completion callbacks.
 - Added opt-in smart camera framing that yields to user camera input while expansion continues.
 - Added scan-cone Demo controls, live progress, restart/cancel actions, generated examples, and expansion documentation.
